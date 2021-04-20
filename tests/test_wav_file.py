@@ -10,4 +10,4 @@ def test_loading_and_plotting_wav_file():
         file = WAVFile(audio_file)
         plots_path = audio_path / 'plots'
         plots_path.mkdir(exist_ok=True)
-        file.plot(filename=plots_path / audio_file.name.replace(".wav", ".png"))
+        file.plot(to_s=None, filename=plots_path / audio_file.name.replace(".wav", ".png"))

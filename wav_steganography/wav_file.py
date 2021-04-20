@@ -63,22 +63,17 @@ class WAVFile:
                 print(f"{name} parsed as {value}")
 
             # Make assertions about expected size
-            num_channels = h['NumChannels']
-            bits_per_sample = h['BitsPerSample']
-            sample_rate = h['SampleRate']
-            assert h["BlockAlign"] == num_channels * bits_per_sample // 8, "BlockAlign mismatch."
-            assert h["ByteRate"] == sample_rate * num_channels * bits_per_sample // 8, "ByteRate mismatch."
-            assert h["ChunkSize"] == h["Subchunk2Size"] + 36, "Size mismatch."
+            assert h["BlockAlign"] == h['NumChannels'] * h['BitsPerSample'] // 8
+            assert h["ByteRate"] == h['SampleRate'] * h['NumChannels'] * h['BitsPerSample'] // 8
+            assert h["ChunkSize"] == h["Subchunk2Size"] + 36
 
             # Parse the actual data
             data_formatting = ('<' if h["ChunkID"] == b"RIFF" else ">")
-            data_formatting += {8: 'b', 16: 'h', 32: 'i'}[bits_per_sample]
+            data_formatting += {8: 'b', 16: 'h', 32: 'i'}[h['BitsPerSample']]
             data_arr = np.array(list(struct.iter_unpack(data_formatting, wav_file.read(h['Subchunk2Size']))))
             data_dict = {}
-            step_size = h["Subchunk2Size"] * 8 // num_channels // bits_per_sample
-            for i in range(0, num_channels):
-                at = i * step_size
-                data_dict[f"channel_{i}"] = data_arr[at:at+step_size].flatten()
+            for i in range(0, h['NumChannels']):
+                data_dict[f"channel_{i}"] = data_arr[i::h['NumChannels']].flatten()
             self.data = pd.DataFrame(data=data_dict)
             print(self.data)
 
@@ -88,15 +83,14 @@ class WAVFile:
             return len(self.data)
         return round(second * len(self.data))
 
-    def slice(self, from_s: float = 0.0, to_s: float = None) -> np.array:
+    def slice(self, from_s: float = 0.0, to_s: Optional[float] = None) -> np.array:
         """ Returns a slice of the given data between interval in seconds """
-        assert from_s < to_s, f"Invalid interval, {from_s} >= {to_s}!"
         from_i = self.time_to_index(from_s)
         to_i = self.time_to_index(to_s)
+        assert from_i < to_i, f"Invalid interval, {from_i} >= {to_i}!"
         return self.data[from_i:to_i]
 
-    def plot(self, from_s: float = 0.0, to_s: float = 0.1, filename: Union[Path, str] = None):
-        assert from_s < to_s, f"Invalid interval, {from_s} >= {to_s}!"
+    def plot(self, from_s: float = 0.0, to_s: Optional[float] = 0.1, filename: Union[Path, str] = None):
         import seaborn as sns
         from matplotlib import pyplot as plt
 
