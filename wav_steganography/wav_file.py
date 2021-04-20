@@ -82,8 +82,8 @@ class WAVFile:
             self.data = pd.DataFrame(data=data_dict)
             print(self.data)
 
-    def second_to_index(self, second: float) -> int:
-        """ Returns index of data given second, if None then returns len """
+    def time_to_index(self, second: float) -> int:
+        """ Returns index of data, given as second, if None then returns len """
         if second is None:
             return len(self.data)
         return round(second * len(self.data))
@@ -91,8 +91,8 @@ class WAVFile:
     def slice(self, from_s: float = 0.0, to_s: float = None) -> np.array:
         """ Returns a slice of the given data between interval in seconds """
         assert from_s < to_s, f"Invalid interval, {from_s} >= {to_s}!"
-        from_i = self.second_to_index(from_s)
-        to_i = self.second_to_index(to_s)
+        from_i = self.time_to_index(from_s)
+        to_i = self.time_to_index(to_s)
         return self.data[from_i:to_i]
 
     def plot(self, from_s: float = 0.0, to_s: float = 0.1, filename: Union[Path, str] = None):
@@ -106,11 +106,3 @@ class WAVFile:
             plt.show()
         else:
             plt.savefig(filename)
-
-
-if __name__ == "__main__":
-    audio_file = Path(".").absolute().parent.parent / "audio" / "square_stereo_110hz.wav"
-    # audio_file = Path(".").absolute().parent.parent / "audio" / "sine_mono_110hz.wav"
-    assert audio_file.exists(), f"Specified audio file '{audio_file}' does not exist!"
-    sine_wav_file = WAVFile(audio_file)
-    sine_wav_file.plot(filename="wave.png")
