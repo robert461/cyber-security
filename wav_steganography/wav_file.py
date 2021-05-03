@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from pathlib import Path
 import struct
-from typing import Optional, Union
+from typing import Optional, Union, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -21,14 +21,14 @@ class WAVFile:
     If instead of `[allowed_values]` `None` is supplied, then no check is made.
     """
 
-    _wav_header_specification: list[tuple[str, str, int, Optional[list]]] = [
+    _wav_header_specification: List[Tuple[str, str, int, Optional[List]]] = [
         # === RIFF Chunk ===
-        ("ChunkID", '>c', 4, [b"RIFF", b"RIFX"]),
+        ("ChunkID", '>4s', 4, [b"RIFF", b"RIFX"]),
         ("ChunkSize", '<i', 4, None),
-        ("Format", '>c', 4, [b"WAVE"]),
+        ("Format", '>4s', 4, [b"WAVE"]),
 
         # === FORMAT Subchunk ===
-        ("Subchunk1ID", '>c', 4, [b"fmt "]),
+        ("Subchunk1ID", '>4s', 4, [b"fmt "]),
         ("Subchunk1Size", '<i', 4, [16]),
         ("AudioFormat", '<h', 2, [1]),
         ("NumChannels", '<h', 2, [1, 2]),
@@ -38,7 +38,7 @@ class WAVFile:
         ("BitsPerSample", '<h', 2, [8, 16, 32]),
 
         # === DATA Subchunk ===
-        ("Subchunk2ID", '>c', 4, [b"data"]),
+        ("Subchunk2ID", '>4s', 4, [b"data"]),
         ("Subchunk2Size", '<i', 4, None),
     ]
 
@@ -49,18 +49,16 @@ class WAVFile:
         """
         self._parse_file(filename)
 
-    def _parse_file(self, filename: Path):
+    def _parse_file(self, filename: Union[Path, str]):
         self.header = h = OrderedDict()
         with open(filename, 'rb') as wav_file:
 
             # Parse according to specification
             for name, formatting, byte_count, allowed_values in self._wav_header_specification:
-                value_as_list = [e[0] for e in struct.iter_unpack(formatting, wav_file.read(byte_count))]
-                value = (value_as_list[0] if len(value_as_list) == 1 else b''.join(value_as_list))
-                h[name] = value
+                h[name] = struct.unpack(formatting, wav_file.read(byte_count))[0]
                 if allowed_values is not None:
-                    assert value in allowed_values, f"{name} is {value}, not among {allowed_values}!"
-                print(f"{name} parsed as {value}")
+                    assert h[name] in allowed_values, f"{name} is {h[name]}, not among {allowed_values}!"
+                print(f"{name} parsed as {h[name]}")
 
             # Make assertions about expected size
             assert h["BlockAlign"] == h['NumChannels'] * h['BitsPerSample'] // 8
@@ -68,14 +66,30 @@ class WAVFile:
             assert h["ChunkSize"] == h["Subchunk2Size"] + 36
 
             # Parse the actual data
-            data_formatting = ('<' if h["ChunkID"] == b"RIFF" else ">")
-            data_formatting += {8: 'b', 16: 'h', 32: 'i'}[h['BitsPerSample']]
-            data_arr = np.array(list(struct.iter_unpack(data_formatting, wav_file.read(h['Subchunk2Size']))))
-            data_dict = {}
-            for i in range(0, h['NumChannels']):
-                data_dict[f"channel_{i}"] = data_arr[i::h['NumChannels']].flatten()
+            print(self._get_data_format())
+            data_arr = np.array(struct.unpack(self._get_data_format(), wav_file.read(h['Subchunk2Size'])))
+            data_dict = {
+                f"channel_{i}": data_arr[i::h['NumChannels']].flatten()
+                for i in range(0, h['NumChannels'])
+            }
             self.data = pd.DataFrame(data=data_dict)
             print(self.data)
+
+    def _get_data_format(self) -> str:
+        """ Returns the data format string required for struct (e.g. "<88200h") """
+        data_formatting = ('<' if self.header["ChunkID"] == b"RIFF" else ">")
+        data_formatting += str(self.header['Subchunk2Size'] * 8 // self.header['BitsPerSample'])
+        data_formatting += {8: 'b', 16: 'h', 32: 'i'}[self.header['BitsPerSample']]
+        return data_formatting
+
+    def write(self, filename: Union[Path, str]):
+        with open(filename, 'wb') as file:
+            for name, formatting, byte_count, allowed_values in self._wav_header_specification:
+                assert name in self.header, f"Parameter {name} not found in header!"
+                print(self.header[name])
+                file.write(struct.pack(formatting, self.header[name]))
+            data = list(self.data.to_numpy().flatten())
+            file.write(struct.pack(self._get_data_format(), *data))
 
     def time_to_index(self, second: float) -> int:
         """ Returns index of data, given as second, if None then returns len """
