@@ -3,3 +3,5 @@
 __pycache__
 venv
 audio/plots
+audio/copied
+audio/encoded
