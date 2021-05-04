@@ -18,19 +18,17 @@ def main():
     args = parser.parse_args()
 
     wav_file = WAVFile(args.input)
-    password = args.password if hasattr(args, "password") else None
 
     if args.encode:
-        wav_file.encode(args.encode, password=password)
+        wav_file.encode(args.encode, password=args.password)
 
     if args.decode:
-        decoded_message = wav_file.decode(password=password)
+        decoded_message = wav_file.decode(password=args.password)
         print(f"Decoded message (len={len(decoded_message)}):")
         print(decoded_message)
 
     if args.output:
-        overwrite = hasattr(args, "overwrite")
-        wav_file.write(args.output, overwrite=overwrite)
+        wav_file.write(args.output, overwrite=args.overwrite)
         print(f"Written to {args.output}!")
 
 
