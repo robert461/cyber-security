@@ -75,12 +75,13 @@ class WAVFile:
             assert h["ChunkSize"] == h["Subchunk2Size"] + 36
 
             # Parse the actual data
-            data_arr = np.array(struct.unpack(self._get_data_format(), wav_file.read(h['Subchunk2Size'])))
-            self.data = pd.DataFrame(data={
-                f"channel_{i}": data_arr[i::h['NumChannels']].flatten()
-                for i in range(0, h['NumChannels'])
+            self.data = np.array(struct.unpack(self._get_data_format(), wav_file.read(h['Subchunk2Size'])))
+
+    def _numpy_as_channel_data_frame(self, data_arr: np.ndarray) -> pd.DataFrame:
+            return pd.DataFrame(data={
+                f"channel_{i}": data_arr[i::self.header['NumChannels']].flatten()
+                for i in range(0, self.header['NumChannels'])
             })
-            print(self.data)
 
     def _get_data_format(self) -> str:
         """ Returns the data format string required for struct (e.g. "<88200h") """
@@ -95,8 +96,7 @@ class WAVFile:
                 assert name in self.header, f"Parameter {name} not found in header!"
                 print(self.header[name])
                 file.write(struct.pack(formatting, self.header[name]))
-            data = list(self.data.to_numpy().flatten())
-            file.write(struct.pack(self._get_data_format(), *data))
+            file.write(struct.pack(self._get_data_format(), *list(self.data)))
 
     def time_to_index(self, at_time_s: float) -> int:
         """ Returns index of data, given as second, if None then returns len """
@@ -149,13 +149,37 @@ class WAVFile:
         if password is not None:
             pass  # TODO add encryption
 
-        print(encrypted_header, encrypted_message)
-        byte_data = encrypted_header + encrypted_message
-        binary_data = ''.join(map(lambda b: f"{b:#010b}"[2:], byte_data))
-        print(binary_data)
-        binary_data_split_up = map(lambda b: int(b, 2), textwrap.wrap(binary_data, 2))
-        #for channel in self.header['NumChannels']:
-            #self.data[0:, channel] =
+        configuration = [(encrypted_header, 1, 1),
+                         (encrypted_message, least_significant_bits, every_nth_byte)]
+        for byte_data, LSBs, nth in configuration:
+            binary_data = ''.join(map(lambda b: f"{b:#010b}"[2:], byte_data))
+            print(binary_data)
+            print(textwrap.wrap(binary_data, LSBs))
+            binary_data_split_up = list(map(lambda b: int(b, 2), textwrap.wrap(binary_data, LSBs)))
+            print(binary_data_split_up)
+            bytes_to_use = len(binary_data_split_up) * nth
+
+            # Explanation for this line:
+            # data_bits ^ (data_bits & ((1 << LSBs) - 1)) ^ message_bits
+            #
+            # Say LSBs = 2, data_bits = 0b10111001, message_bits = 0b10, then:
+            # ones   =   ((1 << LSBs) - 1)   =   0b100 - 1   =   0b11
+            #
+            # Now get the LSBs bits from data_bits:
+            # lsb_data_bits  =  data_bits & ones  =  0b10111001 & 0b11  =  0b01
+            #
+            # Using lsb_data_bits set LSBs bits in data_bits to zero:
+            # data_bits_with_zeros  =  data_bits ^ lsb_data_bits  =  0b10111001 ^ 0b01  =  0b10111000
+            #
+            # Now that the LSBs bits are zero, just flip them to whatever is in message_bits:
+            # data_bits_with_zeros ^ message_bits  =  0b10111000 ^ 0b10 = 0b10111010
+            #
+            # The LSBs bits have been set to message_bits after this operation.
+            print(bytes_to_use, nth, LSBs)
+            self.data[0:bytes_to_use:nth] = [
+                data_bits ^ (data_bits & ((1 << LSBs) - 1)) ^ message_bits
+                for message_bits, data_bits in zip(binary_data_split_up, self.data[0:bytes_to_use:nth])
+            ]
 
 
 
