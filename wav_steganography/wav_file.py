@@ -67,7 +67,6 @@ class WAVFile:
                 h[name] = struct.unpack(formatting, wav_file.read(byte_count))[0]
                 if allowed_values is not None:
                     assert h[name] in allowed_values, f"{name} is {h[name]}, not among {allowed_values}!"
-                print(f"{name} parsed as {h[name]}")
 
             # Make assertions about expected size
             assert h["BlockAlign"] == h['NumChannels'] * h['BitsPerSample'] // 8
@@ -97,7 +96,6 @@ class WAVFile:
         with open(filename, 'wb') as file:
             for name, formatting, byte_count, allowed_values in self._wav_header_specification:
                 assert name in self.header, f"Parameter {name} not found in header!"
-                print(self.header[name])
                 file.write(struct.pack(formatting, self.header[name]))
             file.write(struct.pack(self._get_data_format(), *list(self.data)))
 
@@ -137,14 +135,14 @@ class WAVFile:
         This is done by writing to every nth bytes some number of least significant bits.
         A short header is written first, then the message.
         """
-        message_as_bytes = bytes(message, encoding="utf-8")
+        encoded_message = bytes(message, encoding="utf-8")
 
         assert least_significant_bits <= self.header["BitsPerSample"]
 
         lookup = {
             "LeastSignificantBits": least_significant_bits,
             "EveryNthByte": every_nth_byte,
-            "MessageSizeInBytes": len(message_as_bytes),
+            "MessageSizeInBytes": len(encoded_message),
         }
         encoded_header = b''.join(
             struct.pack(formatting, lookup[name])
@@ -152,9 +150,9 @@ class WAVFile:
         )
 
         encrypted_header = encoded_header
-        encrypted_message = message_as_bytes
+        encrypted_message = encoded_message
         if password is not None:
-            pass  # TODO add encryption
+            pass  # TODO Encrypt message
 
         configuration = [(encrypted_header, 1, 1),
                          (encrypted_message, least_significant_bits, every_nth_byte)]
@@ -188,7 +186,7 @@ class WAVFile:
             byte_index = end_byte_index
         assert self.decode() == message
 
-    def _get_bytes(self, from_byte: int, to_byte: int, lsb_count: int = 1, nth_byte: int = 1) -> bytes:
+    def _get_bytes(self, from_byte: int, to_byte: int, lsb_count: int, nth_byte: int) -> bytes:
         """ Return bytes by reading every lsb_count bits from every nth_byte from from_byte to to_byte """
         ones = (1 << lsb_count) - 1
         header_bits_as_str = ''.join(f"{b & ones:0{lsb_count}b}" for b in self.data[from_byte:to_byte:nth_byte])
@@ -197,13 +195,13 @@ class WAVFile:
     def decode(self, password: Optional[str] = None) -> str:
         """ Decode message from this WAVFile """
         header_bit_count = sum(byte_count * 8 for _, _, byte_count in self._encoding_header_specification)
-        header_bytes = self._get_bytes(0, header_bit_count)
+        header_bytes = self._get_bytes(0, header_bit_count, 1, 1)
         formattings = '<' + ''.join(formatting for _, formatting, _ in self._encoding_header_specification)
         lsb_count, nth, message_size = struct.unpack(formattings, header_bytes)
         message_end_bit = message_size * 8 // lsb_count * nth + header_bit_count
         message_bytes = self._get_bytes(header_bit_count, message_end_bit, lsb_count, nth)
         if password is not None:
-            pass  # Decrypt
+            pass  # TODO Decrypt message
         return message_bytes.decode("UTF-8")
 
 

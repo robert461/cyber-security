@@ -32,12 +32,14 @@ def test_loading_and_writing_wav_file():
 
 def test_encoding_decoding():
     def get_random_string() -> str:
-        return ''.join(random.choice(string.ascii_letters) for _ in range(random.randint(100, 1000)))
+        return ''.join(random.choice(string.ascii_letters) for _ in range(random.randint(10000, 10000)))
     for audio_file in audio_path.glob("*.wav"):
         file = WAVFile(audio_file)
         message = get_random_string()
-        file.encode(message, least_significant_bits=4)
-        encoded_file_path = audio_path / "encoded" / audio_file.name
+        file.encode(message, least_significant_bits=2)
+        encoded_dir_path = audio_path / "encoded" 
+        encoded_dir_path.mkdir(exist_ok=True)
+        encoded_file_path = encoded_dir_path / audio_file.name
         file.write(encoded_file_path, overwrite=True)
         encoded_file = WAVFile(encoded_file_path)
         assert encoded_file.decode() == message, "Decoded message is not the same as the encoded one!"
