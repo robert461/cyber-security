@@ -1,11 +1,14 @@
 import hashlib
+import random
+import string
 from pathlib import Path
 
 from wav_steganography.wav_file import WAVFile
 
+audio_path = Path("audio")
+
 
 def test_loading_and_plotting_wav_file():
-    audio_path = Path("audio")
     for audio_file in audio_path.glob("*.wav"):
         print(f"Loading audio file {audio_file}")
         file = WAVFile(audio_file)
@@ -15,7 +18,6 @@ def test_loading_and_plotting_wav_file():
 
 
 def test_loading_and_writing_wav_file():
-    audio_path = Path("audio")
     for audio_file in audio_path.glob("*.wav"):
         md5checksum = hashlib.md5(open(audio_file, 'rb').read()).hexdigest()
         print(f"Loading audio file {audio_file}")
@@ -23,6 +25,19 @@ def test_loading_and_writing_wav_file():
         written_path = audio_path / 'copied'
         written_path.mkdir(exist_ok=True)
         copied_file_path = written_path / audio_file.name
-        file.write(copied_file_path)
+        file.write(copied_file_path, overwrite=True)
         copied_md5checksum = hashlib.md5(open(copied_file_path, 'rb').read()).hexdigest()
         assert md5checksum == copied_md5checksum, "Checksums mismatch!"
+
+
+def test_encoding_decoding():
+    def get_random_string() -> str:
+        return ''.join(random.choice(string.ascii_letters) for _ in range(random.randint(10, 1000)))
+    for audio_file in audio_path.glob("*.wav"):
+        file = WAVFile(audio_file)
+        message = get_random_string()
+        file.encode(message)
+        encoded_file_path = audio_path / "encoded" / audio_file.name
+        file.write(encoded_file_path, overwrite=True)
+        encoded_file = WAVFile(encoded_file_path)
+        assert encoded_file.decode() == message

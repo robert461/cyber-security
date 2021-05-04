@@ -77,11 +77,11 @@ class WAVFile:
             # Parse the actual data
             self.data = np.array(struct.unpack(self._get_data_format(), wav_file.read(h['Subchunk2Size'])))
 
-    def _numpy_as_channel_data_frame(self, data_arr: np.ndarray) -> pd.DataFrame:
-            return pd.DataFrame(data={
-                f"channel_{i}": data_arr[i::self.header['NumChannels']].flatten()
-                for i in range(0, self.header['NumChannels'])
-            })
+    def _data_as_channel_data_frame(self, data_arr: np.ndarray) -> pd.DataFrame:
+        return pd.DataFrame(data={
+            f"channel_{i}": data_arr[i::self.header['NumChannels']].flatten()
+            for i in range(0, self.header['NumChannels'])
+        })
 
     def _get_data_format(self) -> str:
         """ Returns the data format string required for struct (e.g. "<88200h") """
@@ -90,7 +90,10 @@ class WAVFile:
         integer_size = {8: 'b', 16: 'h', 32: 'i'}[self.header['BitsPerSample']]
         return f"{endianness}{integer_count}{integer_size}"
 
-    def write(self, filename: Union[Path, str]):
+    def write(self, filename: Union[Path, str], overwrite: bool = False):
+        """ Create a WAVFile with given filename """
+        if not overwrite and filename.exists():
+            raise FileExistsError
         with open(filename, 'wb') as file:
             for name, formatting, byte_count, allowed_values in self._wav_header_specification:
                 assert name in self.header, f"Parameter {name} not found in header!"
@@ -129,6 +132,11 @@ class WAVFile:
             every_nth_byte: int = 1,
             password: Optional[str] = None
     ):
+        """ Encode a message in the given WAVFile
+
+        This is done by writing to every nth bytes some number of least significant bits.
+        A short header is written first, then the message.
+        """
         message_as_bytes = bytes(message, encoding="utf-8")
 
         assert least_significant_bits <= self.header["BitsPerSample"]
@@ -194,6 +202,8 @@ class WAVFile:
         lsb_count, nth, message_size = struct.unpack(formattings, header_bytes)
         message_end_bit = message_size * 8 // lsb_count * nth + header_bit_count
         message_bytes = self._get_bytes(header_bit_count, message_end_bit, lsb_count, nth)
+        if password is not None:
+            pass  # Decrypt
         return message_bytes.decode("UTF-8")
 
 
