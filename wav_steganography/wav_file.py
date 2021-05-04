@@ -1,3 +1,4 @@
+import textwrap
 from collections import OrderedDict
 from pathlib import Path
 import struct
@@ -18,7 +19,10 @@ class WAVFile:
 
         (name, format, byte_count, [allowed_values])
 
-    If instead of `[allowed_values]` `None` is supplied, then no check is made.
+    * `name` will be used to store the variable in the WAVFile.header dictionary.
+    * `format` is the byte format required for struct: https://docs.python.org/3/library/struct.html
+    * `bytes` is the number of bytes to read from the file
+    * `[allowed_values]` is a list of allowed values for this entry, if None, no check is made
     """
 
     _wav_header_specification: List[Tuple[str, str, int, Optional[List]]] = [
@@ -42,10 +46,15 @@ class WAVFile:
         ("Subchunk2Size", '<i', 4, None),
     ]
 
+    _encoding_header_specification: List[Tuple[str, str, int]] = [
+        ("LeastSignificantBits", '<B', 1),
+        ("EveryNthByte", '<H', 2),
+        ("MessageSizeInBytes", '<I', 4),
+    ]
+
     def __init__(self, filename: Path):
         """
         :param filename: path to WAV audio file
-        :return: numpy array of data
         """
         self._parse_file(filename)
 
@@ -66,21 +75,19 @@ class WAVFile:
             assert h["ChunkSize"] == h["Subchunk2Size"] + 36
 
             # Parse the actual data
-            print(self._get_data_format())
             data_arr = np.array(struct.unpack(self._get_data_format(), wav_file.read(h['Subchunk2Size'])))
-            data_dict = {
+            self.data = pd.DataFrame(data={
                 f"channel_{i}": data_arr[i::h['NumChannels']].flatten()
                 for i in range(0, h['NumChannels'])
-            }
-            self.data = pd.DataFrame(data=data_dict)
+            })
             print(self.data)
 
     def _get_data_format(self) -> str:
         """ Returns the data format string required for struct (e.g. "<88200h") """
-        data_formatting = ('<' if self.header["ChunkID"] == b"RIFF" else ">")
-        data_formatting += str(self.header['Subchunk2Size'] * 8 // self.header['BitsPerSample'])
-        data_formatting += {8: 'b', 16: 'h', 32: 'i'}[self.header['BitsPerSample']]
-        return data_formatting
+        endianness = ('<' if self.header["ChunkID"] == b"RIFF" else ">")
+        integer_count = self.header['Subchunk2Size'] * 8 // self.header['BitsPerSample']
+        integer_size = {8: 'b', 16: 'h', 32: 'i'}[self.header['BitsPerSample']]
+        return f"{endianness}{integer_count}{integer_size}"
 
     def write(self, filename: Union[Path, str]):
         with open(filename, 'wb') as file:
@@ -91,11 +98,11 @@ class WAVFile:
             data = list(self.data.to_numpy().flatten())
             file.write(struct.pack(self._get_data_format(), *data))
 
-    def time_to_index(self, second: float) -> int:
+    def time_to_index(self, at_time_s: float) -> int:
         """ Returns index of data, given as second, if None then returns len """
-        if second is None:
+        if at_time_s is None:
             return len(self.data)
-        return round(second * len(self.data))
+        return round(at_time_s * len(self.data))
 
     def slice(self, from_s: float = 0.0, to_s: Optional[float] = None) -> np.array:
         """ Returns a slice of the given data between interval in seconds """
@@ -114,3 +121,42 @@ class WAVFile:
             plt.show()
         else:
             plt.savefig(filename)
+
+    def encode(
+            self,
+            message: Union[bytes, str],
+            least_significant_bits: int = 2,
+            every_nth_byte: int = 1,
+            password: Optional[str] = None
+    ):
+        if isinstance(message, str):
+            message = bytes(message, encoding="utf-8")
+
+        assert least_significant_bits <= self.header["BitsPerSample"]
+
+        lookup = {
+            "LeastSignificantBits": least_significant_bits,
+            "EveryNthByte": every_nth_byte,
+            "MessageSizeInBytes": len(message),
+        }
+        encoded_header = b''.join(
+            struct.pack(formatting, lookup[name])
+            for name, formatting, byte_count in self._encoding_header_specification
+        )
+
+        encrypted_header = encoded_header
+        encrypted_message = message
+        if password is not None:
+            pass  # TODO add encryption
+
+        print(encrypted_header, encrypted_message)
+        byte_data = encrypted_header + encrypted_message
+        binary_data = ''.join(map(lambda b: f"{b:#010b}"[2:], byte_data))
+        print(binary_data)
+        binary_data_split_up = map(lambda b: int(b, 2), textwrap.wrap(binary_data, 2))
+        #for channel in self.header['NumChannels']:
+            #self.data[0:, channel] =
+
+
+
+

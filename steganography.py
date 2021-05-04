@@ -14,7 +14,7 @@ def main():
     parser.add_argument("-p", "--password", type=bool, help="encrypt message with a password (will ask for password)")
     args = parser.parse_args()
     wav_file = WAVFile(args.input)
-    wav_file.write("test.wav")
+    wav_file.encode(args.encode)
 
 
 if __name__ == "__main__":
