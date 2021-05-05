@@ -163,28 +163,32 @@ class WAVFile:
             bytes_to_use = len(binary_data_split_up) * nth
             end_byte_index = bytes_to_use + byte_index
 
-            # Explanation for this line:
-            # data_bits ^ (data_bits & ((1 << LSBs) - 1)) ^ message_bits
-            #
-            # Say LSBs = 2, data_bits = 0b10111001, message_bits = 0b10, then:
-            # ones   =   ((1 << LSBs) - 1)   =   0b100 - 1   =   0b11
-            #
-            # Now get the LSBs bits from data_bits:
-            # lsb_data_bits  =  data_bits & ones  =  0b10111001 & 0b11  =  0b01
-            #
-            # Using lsb_data_bits set LSBs bits in data_bits to zero:
-            # data_bits_with_zeros  =  data_bits ^ lsb_data_bits  =  0b10111001 ^ 0b01  =  0b10111000
-            #
-            # Now that the LSBs bits are zero, just flip them to whatever is in message_bits:
-            # data_bits_with_zeros ^ message_bits  =  0b10111000 ^ 0b10 = 0b10111010
-            #
-            # The LSBs bits have been set to message_bits after this operation.
             self.data[byte_index:end_byte_index:nth] = [
-                data_bits ^ (data_bits & ((1 << LSBs) - 1)) ^ message_bits
+                self._set_last_n_bits(data_bits, message_bits, LSBs)
                 for message_bits, data_bits in zip(binary_data_split_up, self.data[byte_index:end_byte_index:nth])
             ]
             byte_index = end_byte_index
         assert self.decode() == message
+
+    @staticmethod
+    def _set_last_n_bits(data_bits, message_bits, n_bits_to_set):
+        """ Set n bits in data_bits to 0, then set them equal to message_bits
+
+        Say LSBs = 2, data_bits = 0b10111001, message_bits = 0b10, then:
+        ones   =   (2**n_bits_to_set - 1)   =   0b100 - 1   =   0b11
+
+        Now get the LSBs bits from data_bits:
+        lsb_data_bits  =  data_bits & ones  =  0b10111001 & 0b11  =  0b01
+
+        Using lsb_data_bits set LSBs bits in data_bits to zero:
+        data_bits_with_zeros  =  data_bits ^ lsb_data_bits  =  0b10111001 ^ 0b01  =  0b10111000
+
+        Now that the LSBs bits are zero, just flip them to whatever is in message_bits:
+        data_bits_with_zeros ^ message_bits  =  0b10111000 ^ 0b10 = 0b10111010
+
+        The LSBs bits have been set to message_bits after this operation.
+        """
+        return data_bits ^ (data_bits & (2**n_bits_to_set - 1)) ^ message_bits
 
     def _get_bytes(self, from_byte: int, to_byte: int, lsb_count: int, nth_byte: int) -> bytes:
         """ Return bytes by reading every lsb_count bits from every nth_byte from from_byte to to_byte """
@@ -200,9 +204,22 @@ class WAVFile:
         lsb_count, nth, message_size = struct.unpack(formattings, header_bytes)
         message_end_bit = message_size * 8 // lsb_count * nth + header_bit_count
         message_bytes = self._get_bytes(header_bit_count, message_end_bit, lsb_count, nth)
-        if password is not None:
-            pass  # TODO Decrypt message
+        message_bytes = self._decrypt(message_bytes, password)
         return message_bytes.decode("UTF-8")
+
+    @staticmethod
+    def _encrypt(data: bytes, password: Optional[str]):
+        if password is None:
+            return data
+        # TODO Add encryption here
+        return data
+
+    @staticmethod
+    def _decrypt(data: bytes, password: Optional[str]):
+        if password is None:
+            return data
+        # TODO Add decryption here
+        return data
 
 
 
