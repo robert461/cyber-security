@@ -113,6 +113,7 @@ class WAVFile:
         return self.data[from_i:to_i]
 
     def plot(self, from_s: float = 0.0, to_s: Optional[float] = 0.1, filename: Union[Path, str] = None):
+        """ Create a plot of the audio with the given time-frame """
         import seaborn as sns
         from matplotlib import pyplot as plt
 
@@ -135,9 +136,9 @@ class WAVFile:
         This is done by writing to every nth bytes some number of least significant bits.
         A short header is written first, then the message.
         """
-        encoded_message = bytes(message, encoding="utf-8")
-
         assert least_significant_bits <= self.header["BitsPerSample"]
+
+        encoded_message = bytes(message, encoding="utf-8")
 
         lookup = {
             "LeastSignificantBits": least_significant_bits,
@@ -149,10 +150,8 @@ class WAVFile:
             for name, formatting, byte_count in self._encoding_header_specification
         )
 
-        encrypted_header = encoded_header
-        encrypted_message = encoded_message
-        if password is not None:
-            pass  # TODO Encrypt message
+        encrypted_header = self._encrypt(encoded_header, password)
+        encrypted_message = self._encrypt(encoded_message, password)
 
         configuration = [(encrypted_header, 1, 1),
                          (encrypted_message, least_significant_bits, every_nth_byte)]
@@ -193,13 +192,14 @@ class WAVFile:
     def _get_bytes(self, from_byte: int, to_byte: int, lsb_count: int, nth_byte: int) -> bytes:
         """ Return bytes by reading every lsb_count bits from every nth_byte from from_byte to to_byte """
         ones = (1 << lsb_count) - 1
-        header_bits_as_str = ''.join(f"{b & ones:0{lsb_count}b}" for b in self.data[from_byte:to_byte:nth_byte])
-        return bytes(map(lambda b: int(b, 2), textwrap.wrap(header_bits_as_str, 8)))
+        bits_as_str = ''.join(f"{b & ones:0{lsb_count}b}" for b in self.data[from_byte:to_byte:nth_byte])
+        return bytes(map(lambda b: int(b, 2), textwrap.wrap(bits_as_str, 8)))
 
     def decode(self, password: Optional[str] = None) -> str:
         """ Decode message from this WAVFile """
         header_bit_count = sum(byte_count * 8 for _, _, byte_count in self._encoding_header_specification)
         header_bytes = self._get_bytes(0, header_bit_count, 1, 1)
+        header_bytes = self._decrypt(header_bytes, password)
         formattings = '<' + ''.join(formatting for _, formatting, _ in self._encoding_header_specification)
         lsb_count, nth, message_size = struct.unpack(formattings, header_bytes)
         message_end_bit = message_size * 8 // lsb_count * nth + header_bit_count
