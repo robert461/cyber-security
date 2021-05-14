@@ -35,7 +35,7 @@ def test_encoding_decoding():
         return ''.join(random.choice(string.ascii_letters) for _ in range(random.randint(10000, 10000)))
     for audio_file in audio_path.glob("*.wav"):
         file = WAVFile(audio_file)
-        message = get_random_string()
+        message = get_random_string().encode("UTF-8")
         file.encode(message, least_significant_bits=2)
         encoded_dir_path = audio_path / "encoded" 
         encoded_dir_path.mkdir(exist_ok=True)

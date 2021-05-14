@@ -52,7 +52,7 @@ class WAVFile:
         ("MessageSizeInBytes", 'I', 4),
     ]
 
-    def __init__(self, filename: Path):
+    def __init__(self, filename: Union[Path, str]):
         """
         :param filename: path to WAV audio file
         """
@@ -126,7 +126,7 @@ class WAVFile:
 
     def encode(
             self,
-            message: str,
+            message: bytes,
             least_significant_bits: int = 2,
             every_nth_byte: int = 1,
             password: Optional[str] = None
@@ -138,28 +138,28 @@ class WAVFile:
         """
         assert least_significant_bits <= self.header["BitsPerSample"]
 
-        encoded_message = bytes(message, encoding="utf-8")
+        encrypted_message = self._encrypt(message, password)
+        encrypted_message = self._encode_error_correction(encrypted_message)
 
         lookup = {
             "LeastSignificantBits": least_significant_bits,
             "EveryNthByte": every_nth_byte,
-            "MessageSizeInBytes": len(encoded_message),
+            "MessageSizeInBytes": len(encrypted_message),
         }
         encoded_header = b''.join(
             struct.pack(formatting, lookup[name])
             for name, formatting, byte_count in self._encoding_header_specification
         )
 
-        encrypted_header = self._encrypt(encoded_header, password)
-        encrypted_message = self._encrypt(encoded_message, password)
-
-        configuration = [(encrypted_header, 1, 1),
-                         (encrypted_message, least_significant_bits, every_nth_byte)]
+        configuration: List[Tuple[bytes, int, int]] = [
+            (encoded_header, 1, 1),
+            (encrypted_message, least_significant_bits, every_nth_byte)
+        ]
         byte_index = 0
         for byte_data, LSBs, nth in configuration:
-            binary_data = ''.join(map(lambda b: f"{b:08b}", byte_data))
-            binary_data_split_up = list(map(lambda b: int(b, 2), textwrap.wrap(binary_data, LSBs)))
-            bytes_to_use = len(binary_data_split_up) * nth
+            binary_data = ''.join(map(lambda b: f"{b:08b}", byte_data))  # e.g. "0010101011101100"
+            binary_data_split_up = list(map(lambda b: int(b, 2), textwrap.wrap(binary_data, LSBs)))  # e.g. ["00", "10"]
+            bytes_to_use = len(binary_data_split_up) * nth  # e.g. 32 if LSB=2 and nth=4 with 16 message bits
             end_byte_index = bytes_to_use + byte_index
 
             self.data[byte_index:end_byte_index:nth] = [
@@ -167,10 +167,10 @@ class WAVFile:
                 for message_bits, data_bits in zip(binary_data_split_up, self.data[byte_index:end_byte_index:nth])
             ]
             byte_index = end_byte_index
-        assert self.decode() == message
+        assert self.decode() == message, f'Cannot decode encrypted message: "{self.decode()}" != "{message}"'
 
     @staticmethod
-    def _set_last_n_bits(data_bits, message_bits, n_bits_to_set):
+    def _set_last_n_bits(data_bits: int, message_bits: int, n_bits_to_set: int) -> int:
         """ Set n bits in data_bits to 0, then set them equal to message_bits
 
         Say LSBs = 2, data_bits = 0b10111001, message_bits = 0b10, then:
@@ -191,37 +191,45 @@ class WAVFile:
 
     def _get_bytes(self, from_byte: int, to_byte: int, lsb_count: int, nth_byte: int) -> bytes:
         """ Return bytes by reading every lsb_count bits from every nth_byte from from_byte to to_byte """
-        ones = (1 << lsb_count) - 1
+        ones = 2**lsb_count - 1
         bits_as_str = ''.join(f"{b & ones:0{lsb_count}b}" for b in self.data[from_byte:to_byte:nth_byte])
         return bytes(map(lambda b: int(b, 2), textwrap.wrap(bits_as_str, 8)))
 
-    def decode(self, password: Optional[str] = None) -> str:
+    def decode(self, password: Optional[str] = None) -> bytes:
         """ Decode message from this WAVFile """
         header_bit_count = sum(byte_count * 8 for _, _, byte_count in self._encoding_header_specification)
         header_bytes = self._get_bytes(0, header_bit_count, 1, 1)
-        header_bytes = self._decrypt(header_bytes, password)
-        formattings = '<' + ''.join(formatting for _, formatting, _ in self._encoding_header_specification)
-        lsb_count, nth, message_size = struct.unpack(formattings, header_bytes)
+        header_format = '<' + ''.join(formatting for _, formatting, _ in self._encoding_header_specification)
+        lsb_count, nth, message_size = struct.unpack(header_format, header_bytes)
         message_end_bit = message_size * 8 // lsb_count * nth + header_bit_count
         message_bytes = self._get_bytes(header_bit_count, message_end_bit, lsb_count, nth)
+        message_bytes = self._decode_error_correction(message_bytes)
         message_bytes = self._decrypt(message_bytes, password)
-        return message_bytes.decode("UTF-8")
+        return message_bytes
 
     @staticmethod
-    def _encrypt(data: bytes, password: Optional[str]):
+    def _encrypt(data: bytes, password: Optional[str]) -> bytes:
         if password is None:
             return data
         # TODO Add encryption here
         return data
 
     @staticmethod
-    def _decrypt(data: bytes, password: Optional[str]):
+    def _decrypt(data: bytes, password: Optional[str]) -> bytes:
         if password is None:
             return data
         # TODO Add decryption here
         return data
 
+    @staticmethod
+    def _encode_error_correction(data: bytes) -> bytes:
+        # TODO Add error correction (possibly add parameters, e.g. hamming distance)
+        return data
 
+    @staticmethod
+    def _decode_error_correction(data: bytes) -> bytes:
+        # TODO Add error correction (possibly add parameters, e.g. hamming distance)
+        return data
 
 
 

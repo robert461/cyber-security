@@ -20,10 +20,10 @@ def main():
     wav_file = WAVFile(args.input)
 
     if args.encode:
-        wav_file.encode(args.encode, password=args.password)
+        wav_file.encode(args.encode.encode("UTF-8"), password=args.password)
 
     if args.decode:
-        decoded_message = wav_file.decode(password=args.password)
+        decoded_message = wav_file.decode(password=args.password).decode("UTF-8")
         print(f"Decoded message (len={len(decoded_message)}):")
         print(decoded_message)
 
