@@ -49,12 +49,7 @@ class WAVFile:
     ]
 
     def __init__(self, filename: Union[Path, str]):
-        """
-        :param filename: path to WAV audio file
-        """
-        self._parse_file(filename)
-
-    def _parse_file(self, filename: Union[Path, str]):
+        """ Parse WAV file given a path to audio file """
         self.header = h = OrderedDict()
         with open(filename, 'rb') as wav_file:
 
@@ -112,7 +107,6 @@ class WAVFile:
         """ Create a plot of the audio with the given time-frame """
         import seaborn as sns
         from matplotlib import pyplot as plt
-
         sns.set_theme()
         sns.relplot(data=self.slice(from_s, to_s), kind="line")
         if filename is None:
@@ -133,19 +127,16 @@ class WAVFile:
         A short header is written first, then the message.
         """
         assert least_significant_bits <= self.header["BitsPerSample"]
-
         message_encoder = Message.Encoder(message, least_significant_bits, every_nth_byte, password)
-
         byte_index = 0
         for chunk in [message_encoder.header, message_encoder.data]:
-            byte_data, LSBs, nth = chunk.data, chunk.least_significant_bits, chunk.every_nth_byte
-            binary_data = ''.join(map(lambda b: f"{b:08b}", byte_data))  # e.g. "0010101011101100"
-            binary_data_split_up = list(map(lambda b: int(b, 2), textwrap.wrap(binary_data, LSBs)))  # e.g. ["00", "10"]
-            bytes_to_use = len(binary_data_split_up) * nth  # e.g. 32 if LSB=2 and nth=4 with 16 message bits
-            end_byte_index = bytes_to_use + byte_index
-
+            nth = chunk.every_nth_byte
+            binary_data = ''.join(map(lambda b: f"{b:08b}", chunk.data))  # e.g. "0010101011101100"
+            lsb_bits = textwrap.wrap(binary_data, chunk.least_significant_bits)  # e.g. ["00", "10", ...]
+            binary_data_split_up = list(map(lambda b: int(b, 2), lsb_bits))  # e.g. [0, 2, ...]
+            end_byte_index = len(binary_data_split_up) * nth + byte_index  # e.g. 32 on first iteration
             self.data[byte_index:end_byte_index:nth] = [
-                self._set_last_n_bits(data_bits, message_bits, LSBs)
+                self._set_last_n_bits(data_bits, message_bits, chunk.least_significant_bits)
                 for message_bits, data_bits in zip(binary_data_split_up, self.data[byte_index:end_byte_index:nth])
             ]
             byte_index = end_byte_index
@@ -185,8 +176,3 @@ class WAVFile:
         message_end_bit = d.every_nth_byte * d.data_size * 8 // d.least_significant_bits + header_bit_count
         message_bytes = self._get_bytes(header_bit_count, message_end_bit, d.least_significant_bits, d.every_nth_byte)
         return d.decode(message_bytes)
-
-
-
-
-

@@ -11,6 +11,15 @@ class DataChunk:
 
 
 class Message:
+    """ A message class implementing an Encoder and an Decoder
+
+    This header is used to encode the meta information for the message before the actual data part.
+    Currently, this is 3 integers, 7 bytes:
+        * The least significant bits used in the data
+        * The nth bits used in the data
+        * The length in data in bytes (excluding the header)
+    For the header, the values are defined below.
+    """
     HEADER_FORMAT = "<BHI"
     HEADER_BYTE_SIZE = struct.calcsize(HEADER_FORMAT)
     HEADER_LSB_COUNT = 1
