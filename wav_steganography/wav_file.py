@@ -7,6 +7,8 @@ from typing import Optional, Union, List, Tuple
 import numpy as np
 import pandas as pd
 
+from wav_steganography.message import Message
+
 
 class WAVFile:
     """ Basic WAV Audio File Parser
@@ -44,12 +46,6 @@ class WAVFile:
         # === DATA Subchunk ===
         ("Subchunk2ID", '>4s', 4, [b"data"]),
         ("Subchunk2Size", '<i', 4, None),
-    ]
-
-    _encoding_header_specification: List[Tuple[str, str, int]] = [
-        ("LeastSignificantBits", 'B', 1),
-        ("EveryNthByte", 'H', 2),
-        ("MessageSizeInBytes", 'I', 4),
     ]
 
     def __init__(self, filename: Union[Path, str]):
@@ -138,25 +134,11 @@ class WAVFile:
         """
         assert least_significant_bits <= self.header["BitsPerSample"]
 
-        encrypted_message = self._encrypt(message, password)
-        encrypted_message = self._encode_error_correction(encrypted_message)
+        message_encoder = Message.Encoder(message, least_significant_bits, every_nth_byte, password)
 
-        lookup = {
-            "LeastSignificantBits": least_significant_bits,
-            "EveryNthByte": every_nth_byte,
-            "MessageSizeInBytes": len(encrypted_message),
-        }
-        encoded_header = b''.join(
-            struct.pack(formatting, lookup[name])
-            for name, formatting, byte_count in self._encoding_header_specification
-        )
-
-        configuration: List[Tuple[bytes, int, int]] = [
-            (encoded_header, 1, 1),
-            (encrypted_message, least_significant_bits, every_nth_byte)
-        ]
         byte_index = 0
-        for byte_data, LSBs, nth in configuration:
+        for chunk in [message_encoder.header, message_encoder.data]:
+            byte_data, LSBs, nth = chunk.data, chunk.least_significant_bits, chunk.every_nth_byte
             binary_data = ''.join(map(lambda b: f"{b:08b}", byte_data))  # e.g. "0010101011101100"
             binary_data_split_up = list(map(lambda b: int(b, 2), textwrap.wrap(binary_data, LSBs)))  # e.g. ["00", "10"]
             bytes_to_use = len(binary_data_split_up) * nth  # e.g. 32 if LSB=2 and nth=4 with 16 message bits
@@ -197,39 +179,12 @@ class WAVFile:
 
     def decode(self, password: Optional[str] = None) -> bytes:
         """ Decode message from this WAVFile """
-        header_bit_count = sum(byte_count * 8 for _, _, byte_count in self._encoding_header_specification)
+        header_bit_count = Message.HEADER_BYTE_SIZE * 8
         header_bytes = self._get_bytes(0, header_bit_count, 1, 1)
-        header_format = '<' + ''.join(formatting for _, formatting, _ in self._encoding_header_specification)
-        lsb_count, nth, message_size = struct.unpack(header_format, header_bytes)
-        message_end_bit = message_size * 8 // lsb_count * nth + header_bit_count
-        message_bytes = self._get_bytes(header_bit_count, message_end_bit, lsb_count, nth)
-        message_bytes = self._decode_error_correction(message_bytes)
-        message_bytes = self._decrypt(message_bytes, password)
-        return message_bytes
-
-    @staticmethod
-    def _encrypt(data: bytes, password: Optional[str]) -> bytes:
-        if password is None:
-            return data
-        # TODO Add encryption here
-        return data
-
-    @staticmethod
-    def _decrypt(data: bytes, password: Optional[str]) -> bytes:
-        if password is None:
-            return data
-        # TODO Add decryption here
-        return data
-
-    @staticmethod
-    def _encode_error_correction(data: bytes) -> bytes:
-        # TODO Add error correction (possibly add parameters, e.g. hamming distance)
-        return data
-
-    @staticmethod
-    def _decode_error_correction(data: bytes) -> bytes:
-        # TODO Add error correction (possibly add parameters, e.g. hamming distance)
-        return data
+        d = Message.Decoder(header_bytes, password=password)
+        message_end_bit = d.every_nth_byte * d.data_size * 8 // d.least_significant_bits + header_bit_count
+        message_bytes = self._get_bytes(header_bit_count, message_end_bit, d.least_significant_bits, d.every_nth_byte)
+        return d.decode(message_bytes)
 
 
 
