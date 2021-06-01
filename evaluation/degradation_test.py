@@ -10,6 +10,7 @@ TEST_REPORT_FILE_STRING = 'eval_report_'
 
 
 def process_examples():
+    print(audio_file_path)
     for audio_example_pair in audio_file_path.glob('*'):
         print(f'\nNow testing example at {audio_example_pair}')
         process_example_pair(audio_example_pair)
@@ -82,7 +83,7 @@ def append_test_report(randomized_sample_list, user_choice):
     test_report.writerow([example_name, file_1_modified, file_2_modified, user_choice, test_result])
 
 
-audio_file_path = pathlib.Path(__file__).absolute().parents[2].joinpath(AUDIO_FILES_DIRECTORY_NAME)
+audio_file_path = pathlib.Path(__file__).absolute().parents[1].joinpath(AUDIO_FILES_DIRECTORY_NAME)
 test_report_path = pathlib.Path(__file__).absolute().parent.joinpath(TEST_REPORTS_DIRECTORY_NAME)
 test_report_path.mkdir(parents=True, exist_ok=True)
 test_report = init_test_report()
