@@ -11,7 +11,7 @@ TEST_REPORT_FILE_STRING = 'eval_report_'
 
 def process_examples():
     for audio_example_pair in audio_file_path.glob('*'):
-        print('\nNow testing example at ' + str(audio_example_pair))
+        print(f'\nNow testing example at {audio_example_pair}')
         process_example_pair(audio_example_pair)
 
 
@@ -19,10 +19,7 @@ def process_example_pair(audio_example_pair):
     audio_sample_list = []
     for audio_example in audio_example_pair.glob('*'):
         print(audio_example)
-        if "modified" in str(audio_example):
-            modified = True
-        else:
-            modified = False
+        modified = "modified" in str(audio_example)
         audio_sample_list.append((audio_example, modified))
 
     # randomize item order in list
@@ -33,13 +30,13 @@ def process_example_pair(audio_example_pair):
 
 def play_sounds(randomized_sample_list):
     for iteration, (sample, modified) in enumerate(randomized_sample_list):
-        print('Now playing sample ' + str(iteration + 1))
+        print(f'Now playing sample {iteration + 1}')
         playsound(str(sample))
 
 
 def process_user_input(randomized_sample_list):
-    choice = str(input('Which audio file shows degradation? File 1(1), file 2(2), both(b) or none(n)? If you want to '
-                       'repeat the audio playback press (r)'))
+    choice = input('Which audio file shows degradation? File 1(1), file 2(2), both(b) or none(n)? If you want to '
+                   'repeat the audio playback press (r)')
     if choice == '1':
         append_test_report(randomized_sample_list, "1")
         print('You chose file 1.')
@@ -74,13 +71,10 @@ def append_test_report(randomized_sample_list, user_choice):
     file_1_modified = randomized_sample_list[0][1]
     file_2_modified = randomized_sample_list[1][1]
 
-    if user_choice == '1' and file_1_modified:
-        test_result = True
-    elif user_choice == '2' and file_2_modified:
-        test_result = True
-    elif user_choice == 'b' and file_1_modified and file_2_modified:
-        test_result = True
-    elif user_choice == 'n' and not file_1_modified and not file_2_modified:
+    if (user_choice == '1' and file_1_modified) or \
+            (user_choice == '2' and file_2_modified) or \
+            (user_choice == 'b' and file_1_modified and file_2_modified) or \
+            (user_choice == 'n' and not file_1_modified and not file_2_modified):
         test_result = True
     else:
         test_result = False
@@ -88,7 +82,8 @@ def append_test_report(randomized_sample_list, user_choice):
     test_report.writerow([example_name, file_1_modified, file_2_modified, user_choice, test_result])
 
 
-audio_file_path = pathlib.Path().absolute().parent.joinpath(AUDIO_FILES_DIRECTORY_NAME)
-test_report_path = pathlib.Path().absolute().joinpath(TEST_REPORTS_DIRECTORY_NAME)
+audio_file_path = pathlib.Path(__file__).absolute().parents[2].joinpath(AUDIO_FILES_DIRECTORY_NAME)
+test_report_path = pathlib.Path(__file__).absolute().parent.joinpath(TEST_REPORTS_DIRECTORY_NAME)
+test_report_path.mkdir(parents=True, exist_ok=True)
 test_report = init_test_report()
 process_examples()
