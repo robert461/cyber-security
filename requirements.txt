@@ -3,3 +3,5 @@ seaborn
 matplotlib
 pandas
 pytest
+playsound
+vext.gi
