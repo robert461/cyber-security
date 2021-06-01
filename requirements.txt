@@ -1,6 +1,6 @@
-numpy~=1.20.3
+numpy
 seaborn
 matplotlib
-pandas~=1.2.4
+pandas
 pytest
-playsound~=1.2.2
+playsound
