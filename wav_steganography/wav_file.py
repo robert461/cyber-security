@@ -127,9 +127,10 @@ class WAVFile:
         A short header is written first, then the message.
         """
         assert least_significant_bits <= self.header["BitsPerSample"]
-        message_encoder = Message.Encoder(message, least_significant_bits, every_nth_byte, password)
+        message_encoder = Message.Encoder(least_significant_bits, every_nth_byte, password)
         byte_index = 0
-        for chunk in [message_encoder.header, message_encoder.data]:
+        header, data = message_encoder.encode(message)
+        for chunk in [header, data]:
             nth = chunk.every_nth_byte
             binary_data = ''.join(map(lambda b: f"{b:08b}", chunk.data))  # e.g. "0010101011101100"
             lsb_bits = textwrap.wrap(binary_data, chunk.least_significant_bits)  # e.g. ["00", "10", ...]
@@ -160,11 +161,11 @@ class WAVFile:
 
         The LSBs bits have been set to message_bits after this operation.
         """
-        return data_bits ^ (data_bits & (2**n_bits_to_set - 1)) ^ message_bits
+        return data_bits ^ (data_bits & (2 ** n_bits_to_set - 1)) ^ message_bits
 
     def _get_bytes(self, from_byte: int, to_byte: int, lsb_count: int, nth_byte: int) -> bytes:
         """ Return bytes by reading every lsb_count bits from every nth_byte from from_byte to to_byte """
-        ones = 2**lsb_count - 1
+        ones = 2 ** lsb_count - 1
         bits_as_str = ''.join(f"{b & ones:0{lsb_count}b}" for b in self.data[from_byte:to_byte:nth_byte])
         return bytes(map(lambda b: int(b, 2), textwrap.wrap(bits_as_str, 8)))
 
@@ -172,7 +173,12 @@ class WAVFile:
         """ Decode message from this WAVFile """
         header_bit_count = Message.HEADER_BYTE_SIZE * 8
         header_bytes = self._get_bytes(0, header_bit_count, 1, 1)
-        d = Message.Decoder(header_bytes, password=password)
-        message_end_bit = d.every_nth_byte * d.data_size * 8 // d.least_significant_bits + header_bit_count
-        message_bytes = self._get_bytes(header_bit_count, message_end_bit, d.least_significant_bits, d.every_nth_byte)
-        return d.decode(message_bytes)
+
+        decoder = Message.Decoder(header_bytes, password=password)
+        message_end_bit = (
+            decoder.every_nth_byte * decoder.data_size * 8 // decoder.least_significant_bits
+            + header_bit_count
+        )
+        message_bytes = self._get_bytes(header_bit_count, message_end_bit, decoder.least_significant_bits,
+                                        decoder.every_nth_byte)
+        return decoder.decode(message_bytes)

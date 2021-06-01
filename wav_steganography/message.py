@@ -1,6 +1,6 @@
 import struct
 from dataclasses import dataclass
-from typing import Union, Optional, List, Tuple
+from typing import Union, Optional, Tuple
 
 
 @dataclass
@@ -35,17 +35,22 @@ class Message:
 
         def __init__(
                 self,
-                data: Union[bytes, str],
                 least_significant_bits: int,
                 every_nth_byte: int,
                 password: Optional[str] = None
         ):
+            self.least_significant_bits = least_significant_bits
+            self.every_nth_byte = every_nth_byte
+            self.password = password
+
+        def encode(self, data: Union[bytes, str]) -> Tuple[DataChunk, DataChunk]:
             data: bytes = self.message_as_bytes(data)
-            data = Message._encrypt(data, password)
+            data = Message._encrypt(data, self.password)
             data = Message._encode_error_correction(data)
-            header_data = struct.pack(Message.HEADER_FORMAT, least_significant_bits, every_nth_byte, len(data))
-            self.header = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
-            self.data = DataChunk(data, least_significant_bits, every_nth_byte)
+            data_chunk = DataChunk(data, self.least_significant_bits, self.every_nth_byte)
+            header_data = struct.pack(Message.HEADER_FORMAT, self.least_significant_bits, self.every_nth_byte, len(data))
+            header_chunk = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
+            return header_chunk, data_chunk
 
     class Decoder:
         """ Decodes header and encrypted data """
