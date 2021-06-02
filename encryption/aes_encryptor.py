@@ -47,7 +47,7 @@ class AesEncryptor(GenericEncryptor):
 
         return encrypted_data
 
-    def decrypt(self, data: bytes):
+    def decrypt(self, data: bytes) -> bytes:
         self.__check_if_configured()
 
         decryptor = self.__cipher.decryptor()

@@ -2,6 +2,7 @@ from encryption.aes_encryptor import AesEncryptor
 from encryption.encryption_type import EncryptionType
 from encryption.fernet_encryptor import FernetEncryptor
 from encryption.generic_encryptor import GenericEncryptor
+from encryption.rsa_encryptor import RsaEncryptor
 
 
 class EncryptionProvider:
@@ -16,3 +17,8 @@ class EncryptionProvider:
 
         if encryption_type == EncryptionType.AES:
             return AesEncryptor()
+
+        if encryption_type == EncryptionType.RSA:
+            return RsaEncryptor()
+
+        raise ValueError('EncryptionType unkown')

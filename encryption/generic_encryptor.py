@@ -16,5 +16,5 @@ class GenericEncryptor(ABC):
         pass
 
     @abstractmethod
-    def decrypt(self, data: bytes):
+    def decrypt(self, data: bytes) -> bytes:
         pass
