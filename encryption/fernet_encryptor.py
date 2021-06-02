@@ -1,40 +1,35 @@
 import base64
 import os
 from getpass import getpass
+from typing import Optional
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+from encryption.encryption_utils import EncryptionUtils
 from encryption.generic_encryptor import GenericEncryptor
 
 
 class FernetEncryptor(GenericEncryptor):
+
+    # https://cryptography.io/en/latest/fernet/
 
     def __init__(self):
         super().__init__()
 
         self.__fernet: Fernet = None
 
-    def configure(self):
+    def configure(self, force_use_existing_credentials: Optional[bool] = False):
 
-        use_existing_credentials = self.ask_user_if_existing_credentials_should_be_used()
+        if not force_use_existing_credentials:
+            use_existing_credentials = EncryptionUtils.ask_user_if_existing_credentials_should_be_used()
+        else:
+            use_existing_credentials = True
 
         if use_existing_credentials:
 
-            password = getpass('Please enter the password you want to use: ')
-
-            salt = os.urandom(16)
-            kdf = PBKDF2HMAC(
-                algorithm = hashes.SHA256(),
-                length = 32,
-                salt = salt,
-                iterations = 100000,
-            )
-
-            password_bytes = bytes(password, 'utf-8')
-
-            key = base64.urlsafe_b64encode(kdf.derive(password_bytes))
+            key = EncryptionUtils.get_base64_key_from_user_input()
 
             self.__fernet = Fernet(key)
 
@@ -46,11 +41,20 @@ class FernetEncryptor(GenericEncryptor):
             self.__fernet = Fernet(key)
 
     def encrypt(self, data: bytes) -> bytes:
+        self.__check_if_configured()
+
         encrypted_data = self.__fernet.encrypt(data)
 
         return encrypted_data
 
     def decrypt(self, data: bytes):
+        self.__check_if_configured()
+
         decrypted_data = self.__fernet.decrypt(data)
 
         return decrypted_data
+
+    def __check_if_configured(self):
+
+        if not self.__fernet:
+            raise RuntimeError('Encryptor not configured. Call configure() first.')

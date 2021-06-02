@@ -53,9 +53,9 @@ class Message:
         if encryptor is None:
             return data
 
-        token = encryptor.encrypt(data)
+        encrypted_data = encryptor.encrypt(data)
 
-        return token
+        return encrypted_data
 
     @staticmethod
     def __decrypt(data: bytes, encryptor: Optional[GenericEncryptor]) -> bytes:

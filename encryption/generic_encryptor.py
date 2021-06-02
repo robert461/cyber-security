@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 
 class GenericEncryptor(ABC):
@@ -7,7 +8,7 @@ class GenericEncryptor(ABC):
         pass
 
     @abstractmethod
-    def configure(self):
+    def configure(self, force_use_exiting_credentials: Optional[bool] = False):
         pass
 
     @abstractmethod
@@ -17,13 +18,3 @@ class GenericEncryptor(ABC):
     @abstractmethod
     def decrypt(self, data: bytes):
         pass
-
-    @staticmethod
-    def ask_user_if_existing_credentials_should_be_used():
-
-        user_input = input('Do you want to enter existing credentials? (yes/no): ')
-
-        if user_input == 'yes':
-            return True
-        if user_input == 'no':
-            return False

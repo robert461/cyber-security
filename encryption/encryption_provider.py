@@ -1,3 +1,4 @@
+from encryption.aes_encryptor import AesEncryptor
 from encryption.encryption_type import EncryptionType
 from encryption.fernet_encryptor import FernetEncryptor
 from encryption.generic_encryptor import GenericEncryptor
@@ -13,12 +14,5 @@ class EncryptionProvider:
         if encryption_type == EncryptionType.FERNET:
             return FernetEncryptor()
 
-    @staticmethod
-    def encode(data: bytes, password: str, encryption_type: EncryptionType):
-
-        if encryption_type == EncryptionType.FERNET:
-            token = FernetEncryptor.encrypt(data, password)
-
-            return token
-
-        return data
+        if encryption_type == EncryptionType.AES:
+            return AesEncryptor()
