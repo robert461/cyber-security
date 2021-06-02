@@ -1,13 +1,8 @@
 import struct
-from dataclasses import dataclass
-from typing import Union, Optional, Tuple
+from typing import Union, Optional
 
-
-@dataclass
-class DataChunk:
-    data: bytes
-    least_significant_bits: int
-    every_nth_byte: int
+from encryption.generic_encryptor import GenericEncryptor
+from wav_steganography.data_chunk import DataChunk
 
 
 class Message:
@@ -25,65 +20,64 @@ class Message:
     HEADER_LSB_COUNT = 1
     HEADER_EVERY_NTH_BYTE = 1
 
-    class Encoder:
-        """ Creates header and encrypted data """
-        @staticmethod
-        def message_as_bytes(message: Union[bytes, str]):
-            if isinstance(message, str):
-                message = message.encode("UTF-8")
-            return message
+    def __init__(self):
+        self.header = None
+        self.data = None
 
-        def __init__(
-                self,
-                least_significant_bits: int,
-                every_nth_byte: int,
-                password: Optional[str] = None
-        ):
-            self.least_significant_bits = least_significant_bits
-            self.every_nth_byte = every_nth_byte
-            self.password = password
+    def encode_message(
+            self,
+            data: Union[bytes, str],
+            least_significant_bits: int,
+            every_nth_byte: int,
+            encryptor: Optional[GenericEncryptor] = None):
 
-        def encode(self, data: Union[bytes, str]) -> Tuple[DataChunk, DataChunk]:
-            data: bytes = self.message_as_bytes(data)
-            data = Message._encrypt(data, self.password)
-            data = Message._encode_error_correction(data)
-            data_chunk = DataChunk(data, self.least_significant_bits, self.every_nth_byte)
-            header_data = struct.pack(Message.HEADER_FORMAT, self.least_significant_bits, self.every_nth_byte, len(data))
-            header_chunk = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
-            return header_chunk, data_chunk
+        data: bytes = Message.__message_as_bytes(data)
 
-    class Decoder:
-        """ Decodes header and encrypted data """
-        def __init__(self, header_data: bytes, password: Optional[str] = None):
-            self.least_significant_bits, self.every_nth_byte, self.data_size = struct.unpack(
-                Message.HEADER_FORMAT, header_data
-            )
-            self.password = password
+        data = Message.__encrypt(data, encryptor)
+        data = Message.__encode_error_correction(data)
 
-        def decode(self, data: bytes) -> bytes:
-            data = Message._decode_error_correction(data)
-            return Message._decrypt(data, self.password)
+        header_data = struct.pack(Message.HEADER_FORMAT, least_significant_bits, every_nth_byte, len(data))
+        self.header = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
+        self.data = DataChunk(data, least_significant_bits, every_nth_byte)
 
-    @staticmethod
-    def _encrypt(data: bytes, password: Optional[str]) -> bytes:
-        if password is None:
-            return data
-        # TODO Add encryption here
+    def decode_message(self, data: bytes, encryptor: Optional[GenericEncryptor]):
+
+        data = self.__decrypt(data, encryptor)
+        data = self.__decode_error_correction(data)
+
         return data
 
     @staticmethod
-    def _decrypt(data: bytes, password: Optional[str]) -> bytes:
-        if password is None:
+    def __encrypt(data: bytes, encryptor: Optional[GenericEncryptor]) -> bytes:
+
+        if encryptor is None:
             return data
-        # TODO Add decryption here
+
+        token = encryptor.encrypt(data)
+
+        return token
+
+    @staticmethod
+    def __decrypt(data: bytes, encryptor: Optional[GenericEncryptor]) -> bytes:
+        if encryptor is None:
+            return data
+
+        data = encryptor.decrypt(data)
         return data
 
     @staticmethod
-    def _encode_error_correction(data: bytes) -> bytes:
+    def __encode_error_correction(data: bytes) -> bytes:
         # TODO Add error correction (possibly add parameters, e.g. hamming distance)
         return data
 
     @staticmethod
-    def _decode_error_correction(data: bytes) -> bytes:
+    def __decode_error_correction(data: bytes) -> bytes:
         # TODO Add error correction (possibly add parameters, e.g. hamming distance)
         return data
+
+    @staticmethod
+    def __message_as_bytes(message: Union[bytes, str]):
+        if isinstance(message, str):
+            message = message.encode("UTF-8")
+
+        return message

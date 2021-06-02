@@ -2,6 +2,7 @@
 
 import argparse
 
+from encryption.encryption_type import EncryptionType
 from wav_steganography.wav_file import WAVFile
 
 
@@ -13,17 +14,17 @@ def main():
                         help="if the file specified as output should be overwritten")
     parser.add_argument("-e", "--encode", type=str, help="encode text message into wav file")
     parser.add_argument("-d", "--decode", action="store_true", help="decode text message from wav file")
-    parser.add_argument("-p", "--password", type=str,
-                        help="encrypt message with a password (will ask for password (TODO))")
+    parser.add_argument("-t", "--encryption_type", type=int, help = "encryption type to use/used")
     args = parser.parse_args()
 
     wav_file = WAVFile(args.input)
 
     if args.encode:
-        wav_file.encode(args.encode.encode("UTF-8"), password=args.password)
+        wav_file.encode(args.encode.encode("UTF-8"), encryption_type=EncryptionType(args.encryption_type))
 
+    # TODO Encryption Type workaround
     if args.decode:
-        decoded_message = wav_file.decode(password=args.password).decode("UTF-8")
+        decoded_message = wav_file.decode(encryptor = None).decode("UTF-8")
         print(f"Decoded message (len={len(decoded_message)}):")
         print(decoded_message)
 
