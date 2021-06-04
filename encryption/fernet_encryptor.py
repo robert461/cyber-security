@@ -36,9 +36,9 @@ class FernetEncryptor(GenericEncryptor):
         else:
             key = Fernet.generate_key()
 
-            print(f'The password is: {key.decode("utf-8")}')
-
             self.__fernet = Fernet(key)
+
+        print(f'The key is: {key.decode("utf-8")}')
 
     def encrypt(self, data: bytes) -> bytes:
         self.__check_if_configured()

@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 
 import argparse
+from pathlib import Path
 
+from encryption.encryption_provider import EncryptionProvider
 from encryption.encryption_type import EncryptionType
 from wav_steganography.wav_file import WAVFile
 
@@ -19,17 +21,23 @@ def main():
 
     wav_file = WAVFile(args.input)
 
+    encryption_type = EncryptionType(args.encryption_type)
+
     if args.encode:
-        wav_file.encode(args.encode.encode("UTF-8"), encryption_type=EncryptionType(args.encryption_type))
+        wav_file.encode(args.encode.encode("UTF-8"), encryption_type=encryption_type)
 
     # TODO Encryption Type workaround
     if args.decode:
-        decoded_message = wav_file.decode(encryptor = None).decode("UTF-8")
+        encryptor = EncryptionProvider.get_encryptor(encryption_type)
+        if encryptor:
+            encryptor.configure(True)
+
+        decoded_message = wav_file.decode(encryptor = encryptor).decode("UTF-8")
         print(f"Decoded message (len={len(decoded_message)}):")
         print(decoded_message)
 
     if args.output:
-        wav_file.write(args.output, overwrite=args.overwrite)
+        wav_file.write(Path(args.output), overwrite=args.overwrite)
         print(f"Written to {args.output}!")
 
 

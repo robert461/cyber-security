@@ -12,6 +12,9 @@ class EncryptionProvider:
 
     @staticmethod
     def get_encryptor(encryption_type: EncryptionType) -> GenericEncryptor:
+        if encryption_type == EncryptionType.NONE:
+            return None
+
         if encryption_type == EncryptionType.FERNET:
             return FernetEncryptor()
 
