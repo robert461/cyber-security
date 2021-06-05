@@ -3,6 +3,7 @@ from typing import Union, Optional
 
 from encryption.generic_encryptor import GenericEncryptor
 from wav_steganography.data_chunk import DataChunk
+from error_correction.hamming_error_correction import HammingErrorCorrection
 
 
 class Message:
@@ -29,21 +30,22 @@ class Message:
             data: Union[bytes, str],
             least_significant_bits: int,
             every_nth_byte: int,
+            redundant_bits: int,
             encryptor: Optional[GenericEncryptor] = None):
 
         data: bytes = Message.__message_as_bytes(data)
 
+        data = Message.__encode_error_correction(data, redundant_bits)
         data = Message.__encrypt(data, encryptor)
-        data = Message.__encode_error_correction(data)
 
         header_data = struct.pack(Message.HEADER_FORMAT, least_significant_bits, every_nth_byte, len(data))
         self.header = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
         self.data = DataChunk(data, least_significant_bits, every_nth_byte)
 
-    def decode_message(self, data: bytes, encryptor: Optional[GenericEncryptor]):
+    def decode_message(self, data: bytes, redundant_bits: int, encryptor: Optional[GenericEncryptor]):
 
         data = self.__decrypt(data, encryptor)
-        data = self.__decode_error_correction(data)
+        data = self.__decode_error_correction(data, redundant_bits)
 
         return data
 
@@ -66,13 +68,17 @@ class Message:
         return data
 
     @staticmethod
-    def __encode_error_correction(data: bytes) -> bytes:
-        # TODO Add error correction (possibly add parameters, e.g. hamming distance)
+    def __encode_error_correction(data: bytes, redundant_bits: int) -> bytes:
+
+        data = HammingErrorCorrection.encode_hamming_error_correction(data, redundant_bits)
+
         return data
 
     @staticmethod
-    def __decode_error_correction(data: bytes) -> bytes:
-        # TODO Add error correction (possibly add parameters, e.g. hamming distance)
+    def __decode_error_correction(data: bytes, redundant_bits: int) -> bytes:
+
+        data = HammingErrorCorrection.decode_hamming_error_correction(data, redundant_bits)
+
         return data
 
     @staticmethod

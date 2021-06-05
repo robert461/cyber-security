@@ -122,6 +122,7 @@ class WAVFile:
             data: bytes,
             least_significant_bits: int = 2,
             every_nth_byte: int = 1,
+            redundant_bits: int = 4,
             encryption_type: Optional[EncryptionType] = EncryptionType.FERNET,
     ):
         """ Encode a message in the given WAVFile
@@ -137,7 +138,7 @@ class WAVFile:
         if encryptor:
             encryptor.configure()
 
-        message.encode_message(data, least_significant_bits, every_nth_byte, encryptor)
+        message.encode_message(data, least_significant_bits, every_nth_byte, redundant_bits, encryptor)
         byte_index = 0
 
         for chunk in [message.header, message.data]:
@@ -155,7 +156,7 @@ class WAVFile:
 
             byte_index = end_byte_index
 
-        decoded_message = self.decode(encryptor = encryptor)
+        decoded_message = self.decode(redundant_bits = redundant_bits, encryptor = encryptor)
         assert decoded_message == data, \
             f'Cannot decode encrypted message: "{decoded_message}" != "{data}"'
 
@@ -185,7 +186,7 @@ class WAVFile:
         bits_as_str = ''.join(f"{b & ones:0{lsb_count}b}" for b in self.data[from_byte:to_byte:nth_byte])
         return bytes(map(lambda b: int(b, 2), textwrap.wrap(bits_as_str, 8)))
 
-    def decode(self, encryptor: Optional[GenericEncryptor] = None) -> bytes:
+    def decode(self, redundant_bits: int, encryptor: Optional[GenericEncryptor] = None) -> bytes:
         """ Decode message from this WAVFile """
         header_bit_count = Message.HEADER_BYTE_SIZE * 8
         header_bytes = self._get_bytes(0, header_bit_count, 1, 1)
@@ -197,6 +198,6 @@ class WAVFile:
         message_bytes = self._get_bytes(header_bit_count, message_end_bit, least_significant_bits, every_nth_byte)
 
         message = Message()
-        decoded_message = message.decode_message(message_bytes, encryptor)
+        decoded_message = message.decode_message(message_bytes, redundant_bits, encryptor)
 
         return decoded_message
