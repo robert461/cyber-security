@@ -11,6 +11,7 @@ from encryption.encryption_provider import EncryptionProvider
 from encryption.encryption_type import EncryptionType
 from encryption.generic_encryptor import GenericEncryptor
 from wav_steganography.message import Message
+from error_correction.hamming_error_correction import HammingErrorCorrection
 
 
 class WAVFile:
@@ -156,8 +157,8 @@ class WAVFile:
 
             byte_index = end_byte_index
 
-        decoded_message = self.decode(redundant_bits = redundant_bits, encryptor = encryptor)
-        assert decoded_message == data, \
+        decoded_message = self.decode(redundant_bits=redundant_bits, encryptor=encryptor)
+        assert decoded_message == data,\
             f'Cannot decode encrypted message: "{decoded_message}" != "{data}"'
 
     @staticmethod
@@ -186,7 +187,7 @@ class WAVFile:
         bits_as_str = ''.join(f"{b & ones:0{lsb_count}b}" for b in self.data[from_byte:to_byte:nth_byte])
         return bytes(map(lambda b: int(b, 2), textwrap.wrap(bits_as_str, 8)))
 
-    def decode(self, redundant_bits: int, encryptor: Optional[GenericEncryptor] = None) -> bytes:
+    def _get_message(self):
         """ Decode message from this WAVFile """
         header_bit_count = Message.HEADER_BYTE_SIZE * 8
         header_bytes = self._get_bytes(0, header_bit_count, 1, 1)
@@ -197,7 +198,29 @@ class WAVFile:
         message_end_bit = every_nth_byte * data_size * 8 // least_significant_bits + header_bit_count
         message_bytes = self._get_bytes(header_bit_count, message_end_bit, least_significant_bits, every_nth_byte)
 
-        message = Message()
-        decoded_message = message.decode_message(message_bytes, redundant_bits, encryptor)
+        return message_bytes
 
-        return decoded_message
+    def decode(self, redundant_bits: int, encryptor: Optional[GenericEncryptor] = None) -> bytes:
+
+        message_bytes = self._get_message()
+
+        message = Message()
+
+        decoded_message = message.decode_message(message_bytes, encryptor)
+
+        decode_error_correction = message.decode_error_correction(decoded_message, redundant_bits)
+
+        return decode_error_correction
+
+    @staticmethod
+    def correct_errors_hamming(self, redundant_bits: int, encryptor: Optional[GenericEncryptor] = None) -> bytes:
+
+        message_bytes = self._get_message()
+
+        message = Message()
+
+        decoded_message = message.decode_message(message_bytes, encryptor)
+
+        corrected_data = message.correct_errors_hamming(decoded_message, redundant_bits)
+
+        return corrected_data

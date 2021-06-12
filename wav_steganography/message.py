@@ -42,10 +42,21 @@ class Message:
         self.header = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
         self.data = DataChunk(data, least_significant_bits, every_nth_byte)
 
-    def decode_message(self, data: bytes, redundant_bits: int, encryptor: Optional[GenericEncryptor]):
+    def decode_message(self, data: bytes, encryptor: Optional[GenericEncryptor]):
 
         data = self.__decrypt(data, encryptor)
-        data = self.__decode_error_correction(data, redundant_bits)
+
+        return data
+
+    def decode_error_correction(self, data: bytes, redundant_bits: int):
+
+        data = self.__decode_hamming_error_correction(data, redundant_bits)
+
+        return data
+
+    def correct_errors_hamming(self, data: bytes, redundant_bits: int):
+
+        data = self.__correct_errors_hamming(data, redundant_bits)
 
         return data
 
@@ -75,9 +86,16 @@ class Message:
         return data
 
     @staticmethod
-    def __decode_error_correction(data: bytes, redundant_bits: int) -> bytes:
+    def __decode_hamming_error_correction(data: bytes, redundant_bits: int) -> bytes:
 
         data = HammingErrorCorrection.decode_hamming_error_correction(data, redundant_bits)
+
+        return data
+
+    @staticmethod
+    def __correct_errors_hamming(decoded_message: bytes, redundant_bits: int) -> bytes:
+
+        data = HammingErrorCorrection.correct_errors_hamming(decoded_message, redundant_bits)
 
         return data
 
