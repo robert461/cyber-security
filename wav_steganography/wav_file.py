@@ -57,6 +57,12 @@ class WAVFile:
             for name, formatting, byte_count, allowed_values in self._wav_header_specification:
                 h[name] = struct.unpack(formatting, wav_file.read(byte_count))[0]
                 if allowed_values is not None:
+                    if "ID" in name:
+                        while h[name] not in allowed_values:
+                            subchunk_size = struct.unpack("<b", wav_file.read(4))[0]
+                            wav_file.read(subchunk_size)
+                            h[name] = struct.unpack(formatting, wav_file.read(byte_count))[0]
+
                     assert h[name] in allowed_values, f"{name} is {h[name]}, not among {allowed_values}!"
 
             # Make assertions about expected size
