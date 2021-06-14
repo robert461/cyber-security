@@ -59,7 +59,7 @@ class WAVFile:
                 if allowed_values is not None:
                     if "ID" in name:
                         while h[name] not in allowed_values:
-                            subchunk_size = struct.unpack("<b", wav_file.read(4))[0]
+                            subchunk_size = struct.unpack("<i", wav_file.read(4))[0]
                             wav_file.read(subchunk_size)
                             h[name] = struct.unpack(formatting, wav_file.read(byte_count))[0]
 
@@ -68,7 +68,6 @@ class WAVFile:
             # Make assertions about expected size
             assert h["BlockAlign"] == h['NumChannels'] * h['BitsPerSample'] // 8
             assert h["ByteRate"] == h['SampleRate'] * h['NumChannels'] * h['BitsPerSample'] // 8
-            assert h["ChunkSize"] == h["Subchunk2Size"] + 36
 
             # Parse the actual data
             self.data = np.array(struct.unpack(self._get_data_format(), wav_file.read(h['Subchunk2Size'])))
@@ -102,7 +101,7 @@ class WAVFile:
             return len(self.data)
         return round(at_time_s * len(self.data))
 
-    def slice(self, from_s: float = 0.0, to_s: Optional[float] = None) -> np.array:
+    def slice(self, from_s: float = 0.0, to_s: Optional[float] = None) -> np.ndarray:
         """ Returns a slice of the given data between interval in seconds """
         from_i = self.time_to_index(from_s)
         to_i = self.time_to_index(to_s)
