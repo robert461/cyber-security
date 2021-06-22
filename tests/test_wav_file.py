@@ -37,9 +37,9 @@ def test_encoding_decoding():
 
     for audio_file in audio_path.glob("*.wav"):
         file = WAVFile(audio_file)
-        message = get_random_string().encode("UTF-8")
+        data = get_random_string().encode("UTF-8")
 
-        file.encode(message)
+        file.encode(data)
 
         encoded_dir_path = audio_path / "encoded" 
         encoded_dir_path.mkdir(exist_ok=True)
@@ -49,5 +49,7 @@ def test_encoding_decoding():
 
         encoded_file = WAVFile(encoded_file_path)
 
+        decoded_data = encoded_file.decode(compare_data = True)
+
         assert \
-            encoded_file.decode(compare_data = True) == message, "Decoded message is not the same as the encoded one!"
+            decoded_data == data, "Decoded message is not the same as the encoded one!"
