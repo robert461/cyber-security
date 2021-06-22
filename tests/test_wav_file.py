@@ -8,6 +8,10 @@ from wav_steganography.wav_file import WAVFile
 audio_path = Path("audio")
 
 
+def get_random_string(position_of_element: int) -> str:
+    return ''.join(random.choice(string.ascii_letters) for _ in range(random.randint(position_of_element, position_of_element)))
+
+
 def test_loading_and_plotting_wav_file():
     for audio_file in audio_path.glob("*.wav"):
         print(f"Loading audio file {audio_file}")
@@ -31,19 +35,15 @@ def test_loading_and_writing_wav_file():
 
 
 def test_encoding_decoding():
-
-    def get_random_string() -> str:
-        return ''.join(random.choice(string.ascii_letters) for _ in range(random.randint(10000, 10000)))
-
     for audio_file in audio_path.glob("*.wav"):
         file = WAVFile(audio_file)
 
-        data_string = get_random_string()
+        data_string = get_random_string(10000)
         data = data_string.encode("UTF-8")
 
         file.encode(data)
 
-        encoded_dir_path = audio_path / "encoded" 
+        encoded_dir_path = audio_path / "encoded"
         encoded_dir_path.mkdir(exist_ok=True)
         encoded_file_path = encoded_dir_path / audio_file.name
 
@@ -55,3 +55,26 @@ def test_encoding_decoding():
 
         assert \
             decoded_data == data, "Decoded message is not the same as the encoded one!"
+
+
+def test_encoding_decoding_with_error_correction():
+    for audio_file in audio_path.glob("*.wav"):
+        file = WAVFile(audio_file)
+
+        data_string = get_random_string(7340)
+        data = data_string.encode("UTF-8")
+
+        file.encode(data, error_correction=True)
+
+        encoded_dir_path = audio_path / "encoded"
+        encoded_dir_path.mkdir(exist_ok=True)
+        encoded_file_path = encoded_dir_path / audio_file.name
+
+        file.write(encoded_file_path, overwrite=True)
+
+        encoded_file = WAVFile(encoded_file_path)
+
+        decoded_data = encoded_file.decode(error_correction=True)
+
+        assert \
+            decoded_data == data, "Decoded and corrected message is not the same as the encoded one!"
