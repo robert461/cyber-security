@@ -13,7 +13,7 @@ class NoneEncryptor(GenericEncryptor):
         pass
 
     def encrypt(self, data: bytes) -> bytes:
-        pass
+        return data
 
     def decrypt(self, data: bytes) -> bytes:
-        pass
+        return data
