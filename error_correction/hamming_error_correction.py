@@ -36,6 +36,8 @@ class HammingErrorCorrection:
 
         data_as_bits = HammingErrorCorrection.return_as_bits(data)
 
+        data_as_bits = HammingErrorCorrection.add_lost_bits(data_as_bits)
+
         number_of_data_and_redundant_bits = 8 + redundant_bits
 
         while len(data_as_bits) > 0:
@@ -58,6 +60,8 @@ class HammingErrorCorrection:
         corrected_data = []
 
         hamming_code_as_bits = HammingErrorCorrection.return_as_bits(decoded_data)
+
+        hamming_code_as_bits = HammingErrorCorrection.add_lost_bits(hamming_code_as_bits)
 
         number_of_data_and_redundant_bits = 8 + redundant_bits
 
@@ -145,8 +149,6 @@ class HammingErrorCorrection:
         # Check all relevant bits in the array for their value
         # https://users.cis.fiu.edu/~downeyt/cop3402/hamming.html
         while j < number_of_data_and_redundant_bits:
-            # print(f"number_of_data_and_redundant_bits: {number_of_data_and_redundant_bits}")
-            # print(f"len(hamming_code): {len(hamming_code)}")
             for i in range(position_of_next_redundant_bit):
                 sum_of_bit_values += hamming_code[j]
                 j += 1
@@ -218,7 +220,12 @@ class HammingErrorCorrection:
 
         while number_of_iterations < redundant_bits:
             position_of_next_redundant_bit = 2 ** number_of_iterations - 1 - number_of_iterations
-            del list_of_hamming_bits[position_of_next_redundant_bit]
+
+            if position_of_next_redundant_bit < len(list_of_hamming_bits):
+                del list_of_hamming_bits[position_of_next_redundant_bit]
+            else:
+                break
+
             number_of_iterations += 1
 
         return list_of_hamming_bits
@@ -245,3 +252,11 @@ class HammingErrorCorrection:
             data_as_bits.extend([int(i) for i in str(np.binary_repr(value, 8))])
 
         return data_as_bits
+
+    @staticmethod
+    def add_lost_bits(data: list) -> list:
+
+        while len(data) % 12 != 0:
+            data.extend([0])
+
+        return data
