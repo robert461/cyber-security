@@ -37,7 +37,10 @@ def test_encoding_decoding():
 
     for audio_file in audio_path.glob("*.wav"):
         file = WAVFile(audio_file)
-        data = get_random_string().encode("UTF-8")
+
+        data_string = get_random_string()
+        data = data_string.encode("UTF-8")
+        data = 'abc'.encode('UTF-8')
 
         file.encode(data)
 

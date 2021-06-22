@@ -18,7 +18,7 @@ def main():
     parser.add_argument("-d", "--decode", action="store_true", help="decode text message from wav file")
     parser.add_argument("-t", "--encryption_type", type=int, help="encryption type to use/used")
     parser.add_argument("-r", "--redundant_bits", type=int, help="number of redundant bits for hamming code")
-    parser.add_argument("-c", "--compare", type=bool,
+    parser.add_argument("-c", "--error_correction", type=bool,
                         help="use argument 'True' for error correction using hamming codes")
 
     args = parser.parse_args()
@@ -35,13 +35,17 @@ def main():
     else:
         redundant_bits = 4
 
-    if args.encode:
-        wav_file.encode(args.encode.encode("UTF-8"), redundant_bits=redundant_bits, encryption_type=encryption_type)
-
-    if args.compare:
-        compare_data = True
+    if args.error_correction:
+        error_correction = True
     else:
-        compare_data = False
+        error_correction = False
+
+    if args.encode:
+        wav_file.encode(
+            args.encode.encode("UTF-8"),
+            redundant_bits = redundant_bits,
+            encryption_type = encryption_type,
+            error_correction = error_correction)
 
     if args.decode:
         encryptor = EncryptionProvider.get_encryptor(encryption_type=encryption_type)
@@ -51,7 +55,7 @@ def main():
         decoded_message = wav_file.decode(
             redundant_bits=redundant_bits,
             encryption_type=encryption_type,
-            compare_data=compare_data)
+            error_correction=error_correction)
 
         decoded_string = decoded_message.decode("UTF-8")
 
