@@ -25,21 +25,26 @@ def main():
 
     wav_file = WAVFile(args.input)
 
-    encryption_type = EncryptionType(args.encryption_type)
+    if args.encryption_type:
+        encryption_type = EncryptionType(args.encryption_type)
+    else:
+        encryption_type = EncryptionType.NONE
 
-    redundant_bits = args.redundant_bits
+    if args.redundant_bits:
+        redundant_bits = args.redundant_bits
+    else:
+        redundant_bits = 4
 
     if args.encode:
-        wav_file.encode(args.encode.encode("UTF-8"), redundant_bits,
-                        encryption_type=EncryptionType(args.encryption_type))
+        wav_file.encode(args.encode.encode("UTF-8"), redundant_bits=redundant_bits, encryption_type=encryption_type)
 
     # TODO Encryption Type workaround
     if args.decode:
-        encryptor = EncryptionProvider.get_encryptor(encryption_type)
+        encryptor = EncryptionProvider.get_encryptor(encryption_type=encryption_type)
         if encryptor:
             encryptor.configure(True)
 
-        decoded_message = wav_file.decode(redundant_bits, encryptor=encryptor).decode("UTF-8")
+        decoded_message = wav_file.decode(redundant_bits=redundant_bits, encryptor=encryptor).decode("UTF-8")
 
         print(f"Decoded message (len={len(decoded_message)}):")
         print(decoded_message)
@@ -53,8 +58,8 @@ def main():
         if encryptor:
             encryptor.configure(True)
 
-        corrected_message =\
-            wav_file.correct_errors_hamming(wav_file, redundant_bits, encryptor=encryptor).decode("UTF-8")
+        corrected_message = wav_file.correct_errors_hamming(
+                wav_file, redundant_bits=redundant_bits, encryptor=encryptor).decode("UTF-8")
 
         print(f"Corrected decoded message (len={len(corrected_message)}):")
         print(corrected_message)
