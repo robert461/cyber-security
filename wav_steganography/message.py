@@ -32,11 +32,14 @@ class Message:
             least_significant_bits: int,
             every_nth_byte: int,
             redundant_bits: int,
-            encryptor: Optional[GenericEncryptor] = NoneEncryptor()):
+            encryptor: Optional[GenericEncryptor] = NoneEncryptor(),
+            error_correction: bool = False):
 
         data: bytes = Message.__message_as_bytes(data)
 
-        data = Message.__encode_error_correction(data, redundant_bits)
+        if error_correction:
+            data = Message.__encode_error_correction(data, redundant_bits)
+
         data = Message.__encrypt(data, encryptor)
 
         header_data = struct.pack(Message.HEADER_FORMAT, least_significant_bits, every_nth_byte, len(data))
@@ -48,11 +51,11 @@ class Message:
             data: bytes,
             encryptor: Optional[GenericEncryptor] = NoneEncryptor(),
             redundant_bits: int = 4,
-            compare_data: bool = False):
+            error_correction: bool = False):
 
         data = self.__decrypt(data, encryptor)
 
-        if compare_data:
+        if error_correction:
             data = self.__decode_error_correction(data, redundant_bits)
 
         return data

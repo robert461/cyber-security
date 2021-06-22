@@ -125,7 +125,8 @@ class WAVFile:
             every_nth_byte: int = 1,
             redundant_bits: int = 4,
             encryption_type: Optional[EncryptionType] = EncryptionType.NONE,
-    ):
+            error_correction: bool = False
+        ):
         """ Encode a message in the given WAVFile
 
         This is done by writing to every nth bytes some number of least significant bits.
@@ -138,7 +139,14 @@ class WAVFile:
         encryptor = EncryptionProvider.get_encryptor(encryption_type)
         encryptor.configure()
 
-        message.encode_message(data, least_significant_bits, every_nth_byte, redundant_bits, encryptor)
+        message.encode_message(
+            data,
+            least_significant_bits,
+            every_nth_byte,
+            redundant_bits,
+            encryptor,
+            error_correction)
+
         byte_index = 0
 
         for chunk in [message.header, message.data]:
@@ -159,7 +167,7 @@ class WAVFile:
         decoded_message = self.decode(
             redundant_bits=redundant_bits,
             encryption_type=encryption_type,
-            compare_data = True)
+            error_correction = error_correction)
 
         assert decoded_message == data,\
             f'Cannot decode encrypted message: "{decoded_message}" != "{data}"'
@@ -206,7 +214,7 @@ class WAVFile:
     def decode(
             self,
             redundant_bits: int = 4,
-            compare_data: bool = False,
+            error_correction: bool = False,
             encryption_type: Optional[EncryptionType] = EncryptionType.NONE) -> bytes:
 
         message_bytes = self._get_message()
@@ -214,6 +222,6 @@ class WAVFile:
         message = Message()
         encryptor = EncryptionProvider.get_encryptor(encryption_type = encryption_type)
 
-        decoded_message = message.decode_message(message_bytes, encryptor, redundant_bits, compare_data)
+        decoded_message = message.decode_message(message_bytes, encryptor, redundant_bits, error_correction)
 
         return decoded_message
