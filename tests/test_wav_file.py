@@ -40,7 +40,6 @@ def test_encoding_decoding():
 
         data_string = get_random_string()
         data = data_string.encode("UTF-8")
-        data = 'abc'.encode('UTF-8')
 
         file.encode(data)
 
@@ -52,7 +51,7 @@ def test_encoding_decoding():
 
         encoded_file = WAVFile(encoded_file_path)
 
-        decoded_data = encoded_file.decode(compare_data = True)
+        decoded_data = encoded_file.decode(error_correction = True)
 
         assert \
             decoded_data == data, "Decoded message is not the same as the encoded one!"
