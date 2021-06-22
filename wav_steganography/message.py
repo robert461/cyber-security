@@ -63,17 +63,12 @@ class Message:
     @staticmethod
     def __encrypt(data: bytes, encryptor: Optional[GenericEncryptor]) -> bytes:
 
-        if encryptor is None:
-            return data
-
         encrypted_data = encryptor.encrypt(data)
 
         return encrypted_data
 
     @staticmethod
     def __decrypt(data: bytes, encryptor: Optional[GenericEncryptor]) -> bytes:
-        if encryptor is None:
-            return data
 
         data = encryptor.decrypt(data)
         return data

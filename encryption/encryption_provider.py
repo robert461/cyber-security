@@ -2,6 +2,7 @@ from encryption.aes_encryptor import AesEncryptor
 from encryption.encryption_type import EncryptionType
 from encryption.fernet_encryptor import FernetEncryptor
 from encryption.generic_encryptor import GenericEncryptor
+from encryption.none_encryptor import NoneEncryptor
 from encryption.rsa_encryptor import RsaEncryptor
 
 
@@ -12,8 +13,8 @@ class EncryptionProvider:
 
     @staticmethod
     def get_encryptor(encryption_type: EncryptionType) -> GenericEncryptor:
-        if encryption_type == EncryptionType.NONE:
-            return None
+        if not encryption_type or encryption_type == EncryptionType.NONE:
+            return NoneEncryptor()
 
         if encryption_type == EncryptionType.FERNET:
             return FernetEncryptor()
@@ -24,4 +25,4 @@ class EncryptionProvider:
         if encryption_type == EncryptionType.RSA:
             return RsaEncryptor()
 
-        raise ValueError('EncryptionType unkown')
+        raise ValueError('Could not get Encryptor')

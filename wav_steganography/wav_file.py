@@ -136,8 +136,7 @@ class WAVFile:
         message = Message()
 
         encryptor = EncryptionProvider.get_encryptor(encryption_type)
-        if encryptor:
-            encryptor.configure()
+        encryptor.configure()
 
         message.encode_message(data, least_significant_bits, every_nth_byte, redundant_bits, encryptor)
         byte_index = 0
