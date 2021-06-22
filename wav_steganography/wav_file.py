@@ -124,7 +124,7 @@ class WAVFile:
             least_significant_bits: int = 2,
             every_nth_byte: int = 1,
             redundant_bits: int = 4,
-            encryption_type: Optional[EncryptionType] = EncryptionType.FERNET,
+            encryption_type: Optional[EncryptionType] = EncryptionType.NONE,
     ):
         """ Encode a message in the given WAVFile
 
