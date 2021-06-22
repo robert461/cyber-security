@@ -49,7 +49,7 @@ class HammingErrorCorrection:
 
             data_as_bits = data_as_bits[number_of_data_and_redundant_bits:]
 
-            if HammingErrorCorrection.ignore_remaining_bits(data_as_bits):
+            if HammingErrorCorrection.ignore_remaining_bits(data_as_bits, number_of_data_and_redundant_bits):
                 break
 
         return b''.join(HammingErrorCorrection.convert_bits_to_bytes(decoded_hamming_code))
@@ -110,7 +110,7 @@ class HammingErrorCorrection:
 
             hamming_code_as_bits = hamming_code_as_bits[number_of_data_and_redundant_bits:]
 
-            if HammingErrorCorrection.ignore_remaining_bits(hamming_code_as_bits):
+            if HammingErrorCorrection.ignore_remaining_bits(hamming_code_as_bits, number_of_data_and_redundant_bits):
                 break
 
         corrected_data_as_byte_string = b''.join(HammingErrorCorrection.convert_bits_to_bytes(corrected_data))
@@ -231,15 +231,17 @@ class HammingErrorCorrection:
         return list_of_hamming_bits
 
     @staticmethod
-    def ignore_remaining_bits(decoded_hamming_code: list) -> bool:
+    def ignore_remaining_bits(decoded_hamming_code: list, number_of_data_and_redundant_bits: int) -> bool:
 
-        bit_sum = 0
+        if len(decoded_hamming_code) <= number_of_data_and_redundant_bits:
 
-        for bit in decoded_hamming_code:
-            bit_sum += bit
+            bit_sum = 0
 
-        if bit_sum == 0:
-            return True
+            for bit in decoded_hamming_code:
+                bit_sum += bit
+
+            if bit_sum == 0:
+                return True
 
         return False
 
