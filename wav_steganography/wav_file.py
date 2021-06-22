@@ -156,7 +156,11 @@ class WAVFile:
 
             byte_index = end_byte_index
 
-        decoded_message = self.decode(redundant_bits=redundant_bits, encryptor=encryptor)
+        decoded_message = self.decode(
+            redundant_bits=redundant_bits,
+            encryption_type=encryption_type,
+            compare_data = True)
+
         assert decoded_message == data,\
             f'Cannot decode encrypted message: "{decoded_message}" != "{data}"'
 
@@ -199,25 +203,17 @@ class WAVFile:
 
         return message_bytes
 
-    def decode(self, redundant_bits: int, encryptor: Optional[GenericEncryptor] = None) -> bytes:
+    def decode(
+            self,
+            redundant_bits: int = 4,
+            compare_data: bool = False,
+            encryption_type: Optional[EncryptionType] = EncryptionType.NONE) -> bytes:
 
         message_bytes = self._get_message()
 
         message = Message()
+        encryptor = EncryptionProvider.get_encryptor(encryption_type = encryption_type)
 
-        decoded_message = message.decode_message(message_bytes, encryptor, redundant_bits)
+        decoded_message = message.decode_message(message_bytes, encryptor, redundant_bits, compare_data)
 
         return decoded_message
-
-    @staticmethod
-    def correct_errors_hamming(self, redundant_bits: int, encryptor: Optional[GenericEncryptor] = None) -> bytes:
-
-        message_bytes = self._get_message()
-
-        message = Message()
-
-        decoded_message = message.decode_message(message_bytes, encryptor)
-
-        corrected_data = message.correct_errors_hamming(decoded_message, redundant_bits)
-
-        return corrected_data

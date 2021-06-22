@@ -38,31 +38,29 @@ def main():
     if args.encode:
         wav_file.encode(args.encode.encode("UTF-8"), redundant_bits=redundant_bits, encryption_type=encryption_type)
 
-    # TODO Encryption Type workaround
+    if args.compare:
+        compare_data = True
+    else:
+        compare_data = False
+
     if args.decode:
         encryptor = EncryptionProvider.get_encryptor(encryption_type=encryption_type)
         if encryptor:
             encryptor.configure(True)
 
-        decoded_message = wav_file.decode(redundant_bits=redundant_bits, encryptor=encryptor).decode("UTF-8")
+        decoded_message = wav_file.decode(
+            redundant_bits=redundant_bits,
+            encryption_type=encryption_type,
+            compare_data=compare_data)
 
-        print(f"Decoded message (len={len(decoded_message)}):")
-        print(decoded_message)
+        decoded_string = decoded_message.decode("UTF-8")
+
+        print(f"Decoded message (len={len(decoded_string)}):")
+        print(decoded_string)
 
     if args.output:
         wav_file.write(Path(args.output), overwrite=args.overwrite)
         print(f"Written to {args.output}!")
-
-    if args.compare:
-        encryptor = EncryptionProvider.get_encryptor(encryption_type)
-        if encryptor:
-            encryptor.configure(True)
-
-        corrected_message = wav_file.correct_errors_hamming(
-                wav_file, redundant_bits=redundant_bits, encryptor=encryptor).decode("UTF-8")
-
-        print(f"Corrected decoded message (len={len(corrected_message)}):")
-        print(corrected_message)
 
 
 if __name__ == "__main__":

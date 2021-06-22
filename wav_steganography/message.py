@@ -2,6 +2,7 @@ import struct
 from typing import Union, Optional
 
 from encryption.generic_encryptor import GenericEncryptor
+from encryption.none_encryptor import NoneEncryptor
 from wav_steganography.data_chunk import DataChunk
 from error_correction.hamming_error_correction import HammingErrorCorrection
 
@@ -31,7 +32,7 @@ class Message:
             least_significant_bits: int,
             every_nth_byte: int,
             redundant_bits: int,
-            encryptor: Optional[GenericEncryptor] = None):
+            encryptor: Optional[GenericEncryptor] = NoneEncryptor()):
 
         data: bytes = Message.__message_as_bytes(data)
 
@@ -42,21 +43,28 @@ class Message:
         self.header = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
         self.data = DataChunk(data, least_significant_bits, every_nth_byte)
 
-    def decode_message(self, data: bytes, encryptor: Optional[GenericEncryptor], redundant_bits: int = 4):
+    def decode_message(
+            self,
+            data: bytes,
+            encryptor: Optional[GenericEncryptor] = NoneEncryptor(),
+            redundant_bits: int = 4,
+            compare_data: bool = False):
 
         data = self.__decrypt(data, encryptor)
-        data = self.__decode_error_correction(data, redundant_bits)
+
+        if compare_data:
+            data = self.__decode_error_correction(data, redundant_bits)
 
         return data
 
     def __decode_error_correction(self, data: bytes, redundant_bits: int):
 
-        data = self.__decode_hamming_error_correction(data, redundant_bits)
+        data = self.__correct_errors_hamming(data, redundant_bits)
 
         return data
 
     @staticmethod
-    def correct_errors_hamming(data: bytes, redundant_bits: int):
+    def __correct_errors_hamming(data: bytes, redundant_bits: int):
 
         data = HammingErrorCorrection.correct_errors_hamming(data, redundant_bits)
 

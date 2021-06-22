@@ -39,13 +39,15 @@ def test_encoding_decoding():
         file = WAVFile(audio_file)
         message = get_random_string().encode("UTF-8")
 
-        file.encode(message, least_significant_bits=2)
+        file.encode(message)
 
         encoded_dir_path = audio_path / "encoded" 
         encoded_dir_path.mkdir(exist_ok=True)
         encoded_file_path = encoded_dir_path / audio_file.name
 
         file.write(encoded_file_path, overwrite=True)
+
         encoded_file = WAVFile(encoded_file_path)
 
-        assert encoded_file.decode() == message, "Decoded message is not the same as the encoded one!"
+        assert \
+            encoded_file.decode(compare_data = True) == message, "Decoded message is not the same as the encoded one!"
