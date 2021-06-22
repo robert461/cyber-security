@@ -205,11 +205,9 @@ class WAVFile:
 
         message = Message()
 
-        decoded_message = message.decode_message(message_bytes, encryptor)
+        decoded_message = message.decode_message(message_bytes, encryptor, redundant_bits)
 
-        decode_error_correction = message.decode_error_correction(decoded_message, redundant_bits)
-
-        return decode_error_correction
+        return decoded_message
 
     @staticmethod
     def correct_errors_hamming(self, redundant_bits: int, encryptor: Optional[GenericEncryptor] = None) -> bytes:
