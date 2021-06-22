@@ -51,7 +51,7 @@ def test_encoding_decoding():
 
         encoded_file = WAVFile(encoded_file_path)
 
-        decoded_data = encoded_file.decode(error_correction = True)
+        decoded_data = encoded_file.decode()
 
         assert \
             decoded_data == data, "Decoded message is not the same as the encoded one!"
