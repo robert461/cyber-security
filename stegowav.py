@@ -16,29 +16,21 @@ def main():
                         help="if the file specified as output should be overwritten")
     parser.add_argument("-e", "--encode", type=str, help="encode text message into wav file")
     parser.add_argument("-d", "--decode", action="store_true", help="decode text message from wav file")
-    parser.add_argument("-t", "--encryption_type", type=int, help="encryption type to use/used")
-    parser.add_argument("-r", "--redundant_bits", type=int, help="number of redundant bits for hamming code")
-    parser.add_argument("-c", "--error_correction", type=bool,
-                        help="use argument 'True' for error correction using hamming codes")
+    possible_encryption_values = ', '.join(f"{enc.value}: {enc.name}" for enc in EncryptionType)
+    parser.add_argument("-t", "--encryption_type", type=int, default=0,
+                        help=f"encryption type as number to use ({possible_encryption_values})")
+    parser.add_argument("-r", "--redundant_bits", type=int, default=4,
+                        help="number of redundant bits for hamming code")
+    parser.add_argument("-c", "--compare", action="store_true",
+                        help="add error correction using hamming codes")  # TODO what does this mean?
 
     args = parser.parse_args()
 
     wav_file = WAVFile(args.input)
 
-    if args.encryption_type:
-        encryption_type = EncryptionType(args.encryption_type)
-    else:
-        encryption_type = EncryptionType.NONE
-
-    if args.redundant_bits:
-        redundant_bits = args.redundant_bits
-    else:
-        redundant_bits = 4
-
-    if args.error_correction:
-        error_correction = True
-    else:
-        error_correction = False
+    encryption_type = EncryptionType(args.encryption_type)
+    redundant_bits = args.redundant_bits
+    error_correction = args.error_correction
 
     if args.encode:
         wav_file.encode(
