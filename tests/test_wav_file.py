@@ -9,7 +9,16 @@ audio_path = Path("audio")
 
 
 def get_random_string(position_of_element: int) -> str:
-    return ''.join(random.choice(string.ascii_letters) for _ in range(random.randint(position_of_element, position_of_element)))
+    return ''.join(random.choice(string.ascii_letters) for _ in
+                   range(random.randint(position_of_element, position_of_element)))
+
+
+def get_file_path(filename):
+    encoded_dir_path = audio_path / "encoded"
+    encoded_dir_path.mkdir(exist_ok = True)
+    encoded_file_path = encoded_dir_path / filename
+
+    return encoded_file_path
 
 
 def test_loading_and_plotting_wav_file():
@@ -43,9 +52,7 @@ def test_encoding_decoding():
 
         file.encode(data)
 
-        encoded_dir_path = audio_path / "encoded"
-        encoded_dir_path.mkdir(exist_ok=True)
-        encoded_file_path = encoded_dir_path / audio_file.name
+        encoded_file_path = get_file_path(audio_file.name)
 
         file.write(encoded_file_path, overwrite=True)
 
@@ -66,9 +73,7 @@ def test_encoding_decoding_with_error_correction():
 
         file.encode(data, error_correction=True)
 
-        encoded_dir_path = audio_path / "encoded"
-        encoded_dir_path.mkdir(exist_ok=True)
-        encoded_file_path = encoded_dir_path / audio_file.name
+        encoded_file_path = get_file_path(audio_file.name)
 
         file.write(encoded_file_path, overwrite=True)
 
