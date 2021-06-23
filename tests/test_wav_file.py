@@ -81,7 +81,7 @@ def single_test_encoding_decoding_with_error_correction(audio_file, data):
 
 def test_multiple_encoding_decoding_with_error_correction():
     for audio_file in audio_path.glob("*.wav"):
-        data_string = get_random_string(7340)
+        data_string = get_random_string(1000)
         data = data_string.encode("UTF-8")
 
         decoded_data = single_test_encoding_decoding_with_error_correction(audio_file, data)
