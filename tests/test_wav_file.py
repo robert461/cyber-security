@@ -3,6 +3,8 @@ import random
 import string
 from pathlib import Path
 
+import pytest
+
 from wav_steganography.wav_file import WAVFile
 
 audio_path = Path("audio")
@@ -64,22 +66,34 @@ def test_encoding_decoding():
             decoded_data == data, "Decoded message is not the same as the encoded one!"
 
 
-def test_encoding_decoding_with_error_correction():
-    for audio_file in audio_path.glob("*.wav"):
-        file = WAVFile(audio_file)
+def single_test_encoding_decoding_with_error_correction(audio_file, data):
+    file = WAVFile(audio_file)
+    encoded_file_path = get_file_path(audio_file.name)
 
+    file.encode(data, error_correction = True)
+    file.write(encoded_file_path, overwrite = True)
+
+    encoded_file = WAVFile(encoded_file_path)
+    decoded_data = encoded_file.decode(error_correction = True)
+
+    return decoded_data
+
+
+def test_multiple_encoding_decoding_with_error_correction():
+    for audio_file in audio_path.glob("*.wav"):
         data_string = get_random_string(7340)
         data = data_string.encode("UTF-8")
 
-        file.encode(data, error_correction=True)
-
-        encoded_file_path = get_file_path(audio_file.name)
-
-        file.write(encoded_file_path, overwrite=True)
-
-        encoded_file = WAVFile(encoded_file_path)
-
-        decoded_data = encoded_file.decode(error_correction=True)
+        decoded_data = single_test_encoding_decoding_with_error_correction(audio_file, data)
 
         assert \
             decoded_data == data, "Decoded and corrected message is not the same as the encoded one!"
+
+
+def test_multiple_encoding_decoding_with_error_correction_and_oversized_data():
+    with pytest.raises(ValueError):
+        for audio_file in audio_path.glob("*.wav"):
+            data_string = get_random_string(10000)
+            data = data_string.encode("UTF-8")
+
+            single_test_encoding_decoding_with_error_correction(audio_file, data)
