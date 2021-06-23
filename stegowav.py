@@ -21,8 +21,8 @@ def main():
                         help=f"encryption type as number to use ({possible_encryption_values})")
     parser.add_argument("-r", "--redundant_bits", type=int, default=4,
                         help="number of redundant bits for hamming code")
-    parser.add_argument("-c", "--compare", action="store_true",
-                        help="add error correction using hamming codes")  # TODO what does this mean?
+    parser.add_argument("-c", "--error_correction", action="store_true",
+                        help="add error correction using hamming codes")
 
     args = parser.parse_args()
 

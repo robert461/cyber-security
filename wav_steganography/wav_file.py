@@ -1,3 +1,4 @@
+import sys
 import textwrap
 from collections import OrderedDict
 from pathlib import Path
@@ -153,6 +154,10 @@ class WAVFile:
             error_correction)
 
         byte_index = 0
+        bits_required_for_data = len(message.data.data) * 8
+        bits_available = (len(self.data) - len(message.header.data) * 8) * least_significant_bits // every_nth_byte
+        if bits_available < bits_required_for_data:
+            sys.exit(f"ERROR: File not large enough for the given message {bits_available} < {bits_required_for_data}!")
 
         for chunk in [message.header, message.data]:
             nth = chunk.every_nth_byte
