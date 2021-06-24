@@ -1,3 +1,4 @@
+import sys
 import textwrap
 from collections import OrderedDict
 from pathlib import Path
@@ -7,7 +8,11 @@ from typing import Optional, Union, List, Tuple
 import numpy as np
 import pandas as pd
 
+from encryption.encryption_provider import EncryptionProvider
+from encryption.encryption_type import EncryptionType
+from encryption.generic_encryptor import GenericEncryptor
 from wav_steganography.message import Message
+from error_correction.hamming_error_correction import HammingErrorCorrection
 
 
 class WAVFile:
@@ -121,32 +126,62 @@ class WAVFile:
 
     def encode(
             self,
-            message: bytes,
+            data: bytes,
             least_significant_bits: int = 2,
             every_nth_byte: int = 1,
-            password: Optional[str] = None
-    ):
+            redundant_bits: int = 4,
+            encryption_type: Optional[EncryptionType] = EncryptionType.NONE,
+            error_correction: bool = False
+        ):
         """ Encode a message in the given WAVFile
 
         This is done by writing to every nth bytes some number of least significant bits.
         A short header is written first, then the message.
         """
         assert least_significant_bits <= self.header["BitsPerSample"]
-        message_encoder = Message.Encoder(least_significant_bits, every_nth_byte, password)
+
+        message = Message()
+
+        encryptor = EncryptionProvider.get_encryptor(encryption_type)
+        encryptor.configure()
+
+        message.encode_message(
+            data,
+            least_significant_bits,
+            every_nth_byte,
+            redundant_bits,
+            encryptor,
+            error_correction)
+
         byte_index = 0
-        header, data = message_encoder.encode(message)
-        for chunk in [header, data]:
+        bits_required_for_data = len(message.data.data) * 8
+        bits_available = (len(self.data) - len(message.header.data) * 8) * least_significant_bits // every_nth_byte
+        if bits_available < bits_required_for_data:
+            raise ValueError(
+                f"ERROR: File not large enough for the given message {bits_available} < {bits_required_for_data}!")
+
+        for chunk in [message.header, message.data]:
             nth = chunk.every_nth_byte
+
             binary_data = ''.join(map(lambda b: f"{b:08b}", chunk.data))  # e.g. "0010101011101100"
             lsb_bits = textwrap.wrap(binary_data, chunk.least_significant_bits)  # e.g. ["00", "10", ...]
             binary_data_split_up = list(map(lambda b: int(b, 2), lsb_bits))  # e.g. [0, 2, ...]
             end_byte_index = len(binary_data_split_up) * nth + byte_index  # e.g. 32 on first iteration
+
             self.data[byte_index:end_byte_index:nth] = [
                 self._set_last_n_bits(data_bits, message_bits, chunk.least_significant_bits)
                 for message_bits, data_bits in zip(binary_data_split_up, self.data[byte_index:end_byte_index:nth])
             ]
+
             byte_index = end_byte_index
-        assert self.decode() == message, f'Cannot decode encrypted message: "{self.decode()}" != "{message}"'
+
+        decoded_message = self.decode(
+            redundant_bits=redundant_bits,
+            encryption_type=encryption_type,
+            error_correction = error_correction)
+
+        assert decoded_message == data,\
+            f'Cannot decode encrypted message: "{decoded_message}" != "{data}"'
 
     @staticmethod
     def _set_last_n_bits(data_bits: int, message_bits: int, n_bits_to_set: int) -> int:
@@ -166,24 +201,38 @@ class WAVFile:
 
         The LSBs bits have been set to message_bits after this operation.
         """
-        return data_bits ^ (data_bits & (2 ** n_bits_to_set - 1)) ^ message_bits
+        return data_bits ^ (data_bits & (2**n_bits_to_set - 1)) ^ message_bits
 
     def _get_bytes(self, from_byte: int, to_byte: int, lsb_count: int, nth_byte: int) -> bytes:
         """ Return bytes by reading every lsb_count bits from every nth_byte from from_byte to to_byte """
-        ones = 2 ** lsb_count - 1
+        ones = 2**lsb_count - 1
         bits_as_str = ''.join(f"{b & ones:0{lsb_count}b}" for b in self.data[from_byte:to_byte:nth_byte])
         return bytes(map(lambda b: int(b, 2), textwrap.wrap(bits_as_str, 8)))
 
-    def decode(self, password: Optional[str] = None) -> bytes:
+    def _get_message(self):
         """ Decode message from this WAVFile """
         header_bit_count = Message.HEADER_BYTE_SIZE * 8
         header_bytes = self._get_bytes(0, header_bit_count, 1, 1)
 
-        decoder = Message.Decoder(header_bytes, password=password)
-        message_end_bit = (
-            decoder.every_nth_byte * decoder.data_size * 8 // decoder.least_significant_bits
-            + header_bit_count
-        )
-        message_bytes = self._get_bytes(header_bit_count, message_end_bit, decoder.least_significant_bits,
-                                        decoder.every_nth_byte)
-        return decoder.decode(message_bytes)
+        least_significant_bits, every_nth_byte, data_size = \
+            struct.unpack(Message.HEADER_FORMAT, header_bytes)
+
+        message_end_bit = every_nth_byte * data_size * 8 // least_significant_bits + header_bit_count
+        message_bytes = self._get_bytes(header_bit_count, message_end_bit, least_significant_bits, every_nth_byte)
+
+        return message_bytes
+
+    def decode(
+            self,
+            redundant_bits: int = 4,
+            error_correction: bool = False,
+            encryption_type: Optional[EncryptionType] = EncryptionType.NONE) -> bytes:
+
+        message_bytes = self._get_message()
+
+        message = Message()
+        encryptor = EncryptionProvider.get_encryptor(encryption_type = encryption_type)
+
+        decoded_message = message.decode_message(message_bytes, encryptor, redundant_bits, error_correction)
+
+        return decoded_message

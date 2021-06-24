@@ -1,13 +1,10 @@
 import struct
-from dataclasses import dataclass
-from typing import Union, Optional, Tuple
+from typing import Union, Optional
 
-
-@dataclass
-class DataChunk:
-    data: bytes
-    least_significant_bits: int
-    every_nth_byte: int
+from encryption.generic_encryptor import GenericEncryptor
+from encryption.none_encryptor import NoneEncryptor
+from wav_steganography.data_chunk import DataChunk
+from error_correction.hamming_error_correction import HammingErrorCorrection
 
 
 class Message:
@@ -25,65 +22,87 @@ class Message:
     HEADER_LSB_COUNT = 1
     HEADER_EVERY_NTH_BYTE = 1
 
-    class Encoder:
-        """ Creates header and encrypted data """
-        @staticmethod
-        def message_as_bytes(message: Union[bytes, str]):
-            if isinstance(message, str):
-                message = message.encode("UTF-8")
-            return message
+    def __init__(self):
+        self.header = None
+        self.data = None
 
-        def __init__(
-                self,
-                least_significant_bits: int,
-                every_nth_byte: int,
-                password: Optional[str] = None
-        ):
-            self.least_significant_bits = least_significant_bits
-            self.every_nth_byte = every_nth_byte
-            self.password = password
+    def encode_message(
+            self,
+            data: Union[bytes, str],
+            least_significant_bits: int,
+            every_nth_byte: int,
+            redundant_bits: int,
+            encryptor: Optional[GenericEncryptor] = NoneEncryptor(),
+            error_correction: bool = False):
 
-        def encode(self, data: Union[bytes, str]) -> Tuple[DataChunk, DataChunk]:
-            data: bytes = self.message_as_bytes(data)
-            data = Message._encrypt(data, self.password)
-            data = Message._encode_error_correction(data)
-            data_chunk = DataChunk(data, self.least_significant_bits, self.every_nth_byte)
-            header_data = struct.pack(Message.HEADER_FORMAT, self.least_significant_bits, self.every_nth_byte, len(data))
-            header_chunk = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
-            return header_chunk, data_chunk
+        data: bytes = Message.__message_as_bytes(data)
 
-    class Decoder:
-        """ Decodes header and encrypted data """
-        def __init__(self, header_data: bytes, password: Optional[str] = None):
-            self.least_significant_bits, self.every_nth_byte, self.data_size = struct.unpack(
-                Message.HEADER_FORMAT, header_data
-            )
-            self.password = password
+        if error_correction:
+            data = Message.__encode_error_correction(data, redundant_bits)
 
-        def decode(self, data: bytes) -> bytes:
-            data = Message._decode_error_correction(data)
-            return Message._decrypt(data, self.password)
+        data = Message.__encrypt(data, encryptor)
 
-    @staticmethod
-    def _encrypt(data: bytes, password: Optional[str]) -> bytes:
-        if password is None:
-            return data
-        # TODO Add encryption here
+        header_data = struct.pack(Message.HEADER_FORMAT, least_significant_bits, every_nth_byte, len(data))
+        self.header = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
+        self.data = DataChunk(data, least_significant_bits, every_nth_byte)
+
+    def decode_message(
+            self,
+            data: bytes,
+            encryptor: Optional[GenericEncryptor] = NoneEncryptor(),
+            redundant_bits: int = 4,
+            error_correction: bool = False):
+
+        data = self.__decrypt(data, encryptor)
+
+        if error_correction:
+            data = self.__decode_error_correction(data, redundant_bits)
+
+        return data
+
+    def __decode_error_correction(self, data: bytes, redundant_bits: int):
+
+        data = self.__correct_errors_hamming(data, redundant_bits)
+
         return data
 
     @staticmethod
-    def _decrypt(data: bytes, password: Optional[str]) -> bytes:
-        if password is None:
-            return data
-        # TODO Add decryption here
+    def __correct_errors_hamming(data: bytes, redundant_bits: int):
+
+        data = HammingErrorCorrection.correct_errors_hamming(data, redundant_bits)
+
         return data
 
     @staticmethod
-    def _encode_error_correction(data: bytes) -> bytes:
-        # TODO Add error correction (possibly add parameters, e.g. hamming distance)
+    def __encrypt(data: bytes, encryptor: Optional[GenericEncryptor]) -> bytes:
+
+        encrypted_data = encryptor.encrypt(data)
+
+        return encrypted_data
+
+    @staticmethod
+    def __decrypt(data: bytes, encryptor: Optional[GenericEncryptor]) -> bytes:
+
+        data = encryptor.decrypt(data)
         return data
 
     @staticmethod
-    def _decode_error_correction(data: bytes) -> bytes:
-        # TODO Add error correction (possibly add parameters, e.g. hamming distance)
+    def __encode_error_correction(data: bytes, redundant_bits: int) -> bytes:
+
+        data = HammingErrorCorrection.encode_hamming_error_correction(data, redundant_bits)
+
         return data
+
+    @staticmethod
+    def __decode_hamming_error_correction(data: bytes, redundant_bits: int) -> bytes:
+
+        data = HammingErrorCorrection.decode_hamming_error_correction(data, redundant_bits)
+
+        return data
+
+    @staticmethod
+    def __message_as_bytes(message: Union[bytes, str]):
+        if isinstance(message, str):
+            message = message.encode("UTF-8")
+
+        return message
