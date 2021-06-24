@@ -1,9 +1,8 @@
-numpy~=1.20.3
+numpy
 seaborn
 matplotlib
-pandas~=1.2.4
+pandas
 pytest
 playsound
 vext.gi
-
-simpleaudio~=1.0.4
+simpleaudio
