@@ -3,8 +3,8 @@
 import argparse
 from pathlib import Path
 
-from encryption.encryption_provider import EncryptionProvider
-from encryption.encryption_type import EncryptionType
+from security.encryption_provider import EncryptionProvider
+from security.enums.encryption_type import EncryptionType
 from wav_steganography.wav_file import WAVFile
 
 

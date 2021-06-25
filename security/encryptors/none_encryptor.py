@@ -1,5 +1,5 @@
 from typing import Optional
-from encryption.generic_encryptor import GenericEncryptor
+from security.encryptors.generic_encryptor import GenericEncryptor
 
 
 class NoneEncryptor(GenericEncryptor):

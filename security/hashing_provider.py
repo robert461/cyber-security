@@ -1,18 +1,18 @@
-from encryption.aes_encryptor import AesEncryptor
-from encryption.encryption_type import EncryptionType
-from encryption.fernet_encryptor import FernetEncryptor
-from encryption.generic_encryptor import GenericEncryptor
-from encryption.none_encryptor import NoneEncryptor
-from encryption.rsa_encryptor import RsaEncryptor
+from security.encryptors.aes_encryptor import AesEncryptor
+from security.enums.encryption_type import EncryptionType
+from security.encryptors.fernet_encryptor import FernetEncryptor
+from security.encryptors.generic_encryptor import GenericEncryptor
+from security.encryptors.none_encryptor import NoneEncryptor
+from security.encryptors.rsa_encryptor import RsaEncryptor
 
 
-class EncryptionProvider:
+class HashingProvider:
 
     def __init__(self):
         pass
 
     @staticmethod
-    def get_encryptor(encryption_type: EncryptionType) -> GenericEncryptor:
+    def get_encryptor(hashing_type: HashingProvider) -> GenericEncryptor:
         if not encryption_type or encryption_type == EncryptionType.NONE:
             return NoneEncryptor()
 

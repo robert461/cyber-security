@@ -3,7 +3,7 @@ from typing import Optional
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
-from encryption.generic_encryptor import GenericEncryptor
+from security.encryptors.generic_encryptor import GenericEncryptor
 
 
 class RsaEncryptor(GenericEncryptor):

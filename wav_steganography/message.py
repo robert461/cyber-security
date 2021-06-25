@@ -1,8 +1,8 @@
 import struct
 from typing import Union, Optional
 
-from encryption.generic_encryptor import GenericEncryptor
-from encryption.none_encryptor import NoneEncryptor
+from security.encryptors.generic_encryptor import GenericEncryptor
+from security.encryptors.none_encryptor import NoneEncryptor
 from wav_steganography.data_chunk import DataChunk
 from error_correction.hamming_error_correction import HammingErrorCorrection
 

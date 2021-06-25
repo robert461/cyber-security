@@ -1,4 +1,3 @@
-import sys
 import textwrap
 from collections import OrderedDict
 from pathlib import Path
@@ -8,11 +7,9 @@ from typing import Optional, Union, List, Tuple
 import numpy as np
 import pandas as pd
 
-from encryption.encryption_provider import EncryptionProvider
-from encryption.encryption_type import EncryptionType
-from encryption.generic_encryptor import GenericEncryptor
+from security.encryption_provider import EncryptionProvider
+from security.enums.encryption_type import EncryptionType
 from wav_steganography.message import Message
-from error_correction.hamming_error_correction import HammingErrorCorrection
 
 
 class WAVFile:

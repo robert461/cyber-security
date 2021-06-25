@@ -1,14 +1,9 @@
-import base64
-import os
-from getpass import getpass
 from typing import Optional
 
 from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-from encryption.encryption_utils import EncryptionUtils
-from encryption.generic_encryptor import GenericEncryptor
+from security.encryption_utils import EncryptionUtils
+from security.encryptors.generic_encryptor import GenericEncryptor
 
 
 class FernetEncryptor(GenericEncryptor):
