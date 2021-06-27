@@ -9,6 +9,8 @@ from security.hashing.none_hash import NoneHash
 
 class AesEncryptor(GenericEncryptor):
 
+    # https://cryptography.io/en/latest/hazmat/primitives/symmetric-encryption/#algorithms
+
     def __init__(self, hash_algo: GenericHash, decryption: bool):
         super().__init__()
 

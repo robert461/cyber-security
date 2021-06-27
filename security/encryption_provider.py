@@ -28,6 +28,6 @@ class EncryptionProvider:
             return AesEncryptor(hash_algo, decryption)
 
         if encryption_type == EncryptionType.RSA:
-            return RsaEncryptor()
+            return RsaEncryptor(decryption)
 
         raise ValueError('Could not get Encryptor')

@@ -1,5 +1,4 @@
 from security.encryptors.generic_encryptor import GenericEncryptor
-from security.hashing.generic_hash import GenericHash
 
 
 class NoneEncryptor(GenericEncryptor):
