@@ -8,10 +8,6 @@ class GenericEncryptor(ABC):
         pass
 
     @abstractmethod
-    def configure(self, force_use_exiting_credentials: Optional[bool] = False):
-        pass
-
-    @abstractmethod
     def encrypt(self, data: bytes) -> bytes:
         pass
 
