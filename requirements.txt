@@ -5,3 +5,4 @@ pandas
 pytest
 playsound
 vext.gi
+simpleaudio
