@@ -17,7 +17,7 @@ def main():
     choices_per_file_pair = analyzer.get_choices_per_file_pair()
 
     visualizer = EvalReportVisualizer()
-    visualizer.draw_pandas_barh(choices_per_file_pair, 'choices_per_file_pair', 20)
+    visualizer.draw_pandas_barh(choices_per_file_pair, 'choices_per_file_pair', 8)
 
 
 if __name__ == "__main__":
