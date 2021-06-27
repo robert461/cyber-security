@@ -1,5 +1,5 @@
 from security.hashing.generic_hash import GenericHash
-from security.hashing_utils import HashingUtils
+from security.utils.hashing_utils import HashingUtils
 
 
 class NoneHash(GenericHash):

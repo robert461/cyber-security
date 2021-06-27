@@ -1,9 +1,8 @@
-from security.encryptors.aes_encryptor import AesEncryptor
-from security.enums.encryption_type import EncryptionType
-from security.encryptors.fernet_encryptor import FernetEncryptor
-from security.encryptors.generic_encryptor import GenericEncryptor
-from security.encryptors.none_encryptor import NoneEncryptor
-from security.encryptors.rsa_encryptor import RsaEncryptor
+from security.enums.hashing_type import HashingType
+from security.hashing.generic_hash import GenericHash
+from security.hashing.none_hash import NoneHash
+from security.hashing.pbkdf2_hash import Pbkdf2Hash
+from security.hashing.scrypt_hash import ScryptHash
 
 
 class HashingProvider:
@@ -12,17 +11,14 @@ class HashingProvider:
         pass
 
     @staticmethod
-    def get_encryptor(hashing_type: HashingProvider) -> GenericEncryptor:
-        if not encryption_type or encryption_type == EncryptionType.NONE:
-            return NoneEncryptor()
+    def get_encryptor(hashing_type: HashingType) -> GenericHash:
+        if not hashing_type or hashing_type == HashingType.NONE:
+            return NoneHash()
 
-        if encryption_type == EncryptionType.FERNET:
-            return FernetEncryptor()
+        if hashing_type == HashingType.PBKDF2:
+            return Pbkdf2Hash()
 
-        if encryption_type == EncryptionType.AES:
-            return AesEncryptor()
+        if hashing_type == HashingType.SCRYPT:
+            return ScryptHash()
 
-        if encryption_type == EncryptionType.RSA:
-            return RsaEncryptor()
-
-        raise ValueError('Could not get Encryptor')
+        raise ValueError('Could not get Hash')

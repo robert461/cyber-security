@@ -4,10 +4,10 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from security.hashing.generic_hash import GenericHash
-from security.hashing_utils import HashingUtils
+from security.utils.hashing_utils import HashingUtils
 
 
-class PbkdfHash(GenericHash):
+class Pbkdf2Hash(GenericHash):
 
     # https://cryptography.io/en/latest/hazmat/primitives/key-derivation-functions/#pbkdf2
 

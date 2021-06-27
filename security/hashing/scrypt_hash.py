@@ -3,7 +3,7 @@ import os
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
 from security.hashing.generic_hash import GenericHash
-from security.hashing_utils import HashingUtils
+from security.utils.hashing_utils import HashingUtils
 
 
 class ScryptHash(GenericHash):
