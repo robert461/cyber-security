@@ -3,26 +3,38 @@ import os
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from security.hashing.generic_hash import GenericHash
-from security.utils.encryption_utils import EncryptionUtils
 from security.encryptors.generic_encryptor import GenericEncryptor
+from security.hashing.none_hash import NoneHash
 
 
 class AesEncryptor(GenericEncryptor):
 
-    def __init__(self, hash_algo: GenericHash):
+    def __init__(self, hash_algo: GenericHash, decryption: bool):
         super().__init__()
+
+        if type(hash_algo) == NoneHash:
+            raise ValueError('AES encryption requires a hash (PBKDF2/SCRYPT)')
 
         self.__hash_algo = hash_algo
 
-        key = self.__hash_algo.get_key()
+        if decryption:
+            key = self.__hash_algo.get_key_with_existing_credentials()
 
-        nonce = os.urandom(16)
+            nonce_string = input('Please enter the nonce: ')
+            nonce = bytes.fromhex(nonce_string)
+
+        else:
+            key = self.__hash_algo.get_key()
+
+            nonce = os.urandom(16)
 
         self.__cipher = Cipher(algorithms.AES(key), modes.CTR(nonce))
 
     def encrypt(self, data: bytes) -> bytes:
 
         nonce = os.urandom(16)
+        print(f'nonce: {nonce.hex()}')
+
         self.__cipher.mode = modes.CTR(nonce)
 
         encryptor = self.__cipher.encryptor()
@@ -36,5 +48,7 @@ class AesEncryptor(GenericEncryptor):
         decryptor = self.__cipher.decryptor()
 
         decrypted_data = decryptor.update(data) + decryptor.finalize()
+
+        a = decrypted_data.hex()
 
         return decrypted_data

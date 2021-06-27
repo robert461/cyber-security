@@ -14,18 +14,18 @@ class EncryptionProvider:
         pass
 
     @staticmethod
-    def get_encryptor(encryption_type: EncryptionType, hash_type: HashType) -> GenericEncryptor:
+    def get_encryptor(encryption_type: EncryptionType, hash_type: HashType, decryption: bool) -> GenericEncryptor:
 
         hash_algo = HashProvider.get_hash(hash_type)
 
         if not encryption_type or encryption_type == EncryptionType.NONE:
-            return NoneEncryptor(hash_algo)
+            return NoneEncryptor()
 
         if encryption_type == EncryptionType.FERNET:
-            return FernetEncryptor(hash_algo)
+            return FernetEncryptor(hash_algo, decryption)
 
         if encryption_type == EncryptionType.AES:
-            return AesEncryptor(hash_algo)
+            return AesEncryptor(hash_algo, decryption)
 
         if encryption_type == EncryptionType.RSA:
             return RsaEncryptor()
