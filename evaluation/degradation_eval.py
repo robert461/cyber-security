@@ -1,62 +1,95 @@
 import pathlib
 import random
 import csv
+import os
+from simpleaudio import WaveObject
 from datetime import datetime
-from playsound import playsound
 
+
+ONE_MINUTE_FILES_DIRECTORY_NAME = 'audio/1min_files'
 AUDIO_FILES_DIRECTORY_NAME = 'audio/evaluation_samples'
 EVAL_REPORTS_DIRECTORY_NAME = 'eval_reports'
 EVAL_REPORT_FILE_STRING = 'eval_report_'
 
 
 def process_examples():
-    print(audio_file_path)
-    for audio_example_pair in audio_file_path.glob('*'):
-        print(f'\nNow evaluating example at {audio_example_pair}')
-        process_example_pair(audio_example_pair)
+    for one_min_sample in unmodified_audio_files_path.glob('*'):
+        audio_sample_list = select_rand_test_variant(one_min_sample)
+        process_example_pair(audio_sample_list, one_min_sample.name)
 
 
-def process_example_pair(audio_example_pair):
+def select_rand_test_variant(one_min_sample):
     audio_sample_list = []
-    for audio_example in audio_example_pair.glob('*'):
-        print(audio_example)
-        modified = "modified" in str(audio_example)
-        audio_sample_list.append((audio_example, modified))
+    test_variant = random.randint(0, 19)
 
+    # unmodified/unmodified
+    if test_variant == 0:
+        for i in range(2):
+            audio_sample_list.append((one_min_sample, 0))
+
+    # modified/modified
+    elif test_variant == 1:
+        for i in range(2):
+            degr_directory = random.choice(os.listdir(audio_file_path))
+            sample = get_audio_file_by_example_name(one_min_sample.name, degr_directory)
+            audio_sample_list.append((sample, sample.parent.name.replace('test_', '')))
+
+    # unmodified/modified
+    else:
+        audio_sample_list.append((one_min_sample, 0))
+        degr_directory = random.choice(os.listdir(audio_file_path))
+        sample = get_audio_file_by_example_name(one_min_sample.name, degr_directory)
+        audio_sample_list.append((sample, sample.parent.name.replace('test_', '')))
+    return audio_sample_list
+
+
+def get_audio_file_by_example_name(name, directory):
+    directory = audio_file_path.joinpath(directory)
+    for file in directory.glob('*'):
+        if name in file.name:
+            return file
+
+
+def process_example_pair(audio_sample_list, example_name):
     # randomize item order in list
     randomized_sample_list = random.sample(audio_sample_list, len(audio_sample_list))
-    play_sounds(randomized_sample_list)
-    process_user_input(randomized_sample_list)
+    print(f'Testing sample {example_name}')
+    play_sounds(randomized_sample_list, example_name)
 
 
-def play_sounds(randomized_sample_list):
+def play_sounds(randomized_sample_list, example_name):
     for iteration, (sample, modified) in enumerate(randomized_sample_list):
-        print(f'Now playing sample {iteration + 1}')
-        playsound(str(sample))
+        print(f'Playing sample {iteration + 1}')
+        wave_obj = WaveObject.from_wave_file(str(sample))
+        play_obj = wave_obj.play()
+        while play_obj.is_playing():
+            if input('Type \'s\' to end playback and go to next file') == 's':
+                play_obj.stop()
+                play_obj.wait_done()
+    process_user_evaluation(randomized_sample_list, example_name)
 
 
-def process_user_input(randomized_sample_list):
-    choice = input('Which audio file shows degradation? File 1(1), file 2(2), both(b) or none(n)? If you want to '
+def process_user_evaluation(randomized_sample_list, example_name):
+    choice = input('Which audio file showed degradation? File 1(1), file 2(2), both(b) or none(n)? If you want to '
                    'repeat the audio playback press (r)')
     if choice == '1':
-        append_eval_report(randomized_sample_list, "1")
+        append_eval_report(randomized_sample_list, "1", example_name)
         print('You chose file 1.')
     elif choice == '2':
         print('You chose file 2.')
-        append_eval_report(randomized_sample_list, "2")
+        append_eval_report(randomized_sample_list, "2", example_name)
     elif choice == 'b':
         print('You detected audio degradation in both files.')
-        append_eval_report(randomized_sample_list, "b")
+        append_eval_report(randomized_sample_list, "b", example_name)
     elif choice == 'n':
         print('You were not able to detect any audio degradation.')
-        append_eval_report(randomized_sample_list, "n")
+        append_eval_report(randomized_sample_list, "n", example_name)
     elif choice == 'r':
         print('Repeating examples...')
-        play_sounds(randomized_sample_list)
-        process_user_input(randomized_sample_list)
+        play_sounds(randomized_sample_list, example_name)
     else:
         print('Undefined command.')
-        process_user_input(randomized_sample_list)
+        process_user_evaluation(randomized_sample_list, example_name)
 
 
 def init_eval_report():
@@ -67,8 +100,7 @@ def init_eval_report():
     return csv_writer
 
 
-def append_eval_report(randomized_sample_list, user_choice):
-    example_name = randomized_sample_list[0][0].parents[0].name
+def append_eval_report(randomized_sample_list, user_choice, example_name):
     file_1_modified = randomized_sample_list[0][1]
     file_2_modified = randomized_sample_list[1][1]
 
@@ -79,11 +111,11 @@ def append_eval_report(randomized_sample_list, user_choice):
         eval_result = True
     else:
         eval_result = False
-
     eval_report.writerow([example_name, file_1_modified, file_2_modified, user_choice, eval_result])
 
 
 audio_file_path = pathlib.Path(__file__).absolute().parents[1].joinpath(AUDIO_FILES_DIRECTORY_NAME)
+unmodified_audio_files_path = pathlib.Path(__file__).absolute().parents[1].joinpath(ONE_MINUTE_FILES_DIRECTORY_NAME)
 eval_report_path = pathlib.Path(__file__).absolute().parent.joinpath(EVAL_REPORTS_DIRECTORY_NAME)
 eval_report_path.mkdir(parents=True, exist_ok=True)
 eval_report = init_eval_report()
