@@ -1,7 +1,7 @@
 from getpass import getpass
 
 
-class HashingUtils:
+class HashUtils:
 
     @staticmethod
     def get_password_from_user() -> bytes:

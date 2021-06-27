@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class HashingType(Enum):
+class HashType(Enum):
 
     NONE = 0
     PBKDF2 = 1

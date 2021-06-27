@@ -4,8 +4,8 @@ from security.encryptors.fernet_encryptor import FernetEncryptor
 from security.encryptors.generic_encryptor import GenericEncryptor
 from security.encryptors.none_encryptor import NoneEncryptor
 from security.encryptors.rsa_encryptor import RsaEncryptor
-from security.enums.hashing_type import HashingType
-from security.hashing_provider import HashingProvider
+from security.enums.hash_type import HashType
+from security.hash_provider import HashProvider
 
 
 class EncryptionProvider:
@@ -14,9 +14,9 @@ class EncryptionProvider:
         pass
 
     @staticmethod
-    def get_encryptor(encryption_type: EncryptionType, hashing_type: HashingType) -> GenericEncryptor:
+    def get_encryptor(encryption_type: EncryptionType, hash_type: HashType) -> GenericEncryptor:
 
-        hash_algo = HashingProvider.get_hash(hashing_type)
+        hash_algo = HashProvider.get_hash(hash_type)
 
         if not encryption_type or encryption_type == EncryptionType.NONE:
             return NoneEncryptor(hash_algo)

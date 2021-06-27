@@ -4,7 +4,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from security.hashing.generic_hash import GenericHash
-from security.utils.hashing_utils import HashingUtils
+from security.utils.hash_utils import HashUtils
 
 
 class Pbkdf2Hash(GenericHash):
@@ -25,7 +25,7 @@ class Pbkdf2Hash(GenericHash):
         salt = os.urandom(self.__salt_length)
         print(f'salt: {salt.hex()}')
 
-        password_bytes = HashingUtils.get_password_from_user()
+        password_bytes = HashUtils.get_password_from_user()
 
         key = self.__derive_key(password_bytes, salt)
 
@@ -33,9 +33,9 @@ class Pbkdf2Hash(GenericHash):
 
     def get_key_with_existing_credentials(self) -> bytes:
 
-        salt = HashingUtils.get_salt_from_user()
+        salt = HashUtils.get_salt_from_user()
 
-        password_bytes = HashingUtils.get_password_from_user()
+        password_bytes = HashUtils.get_password_from_user()
 
         key = self.__derive_key(password_bytes, salt)
 
