@@ -14,7 +14,10 @@ class EncryptionProvider:
         pass
 
     @staticmethod
-    def get_encryptor(encryption_type: EncryptionType, hash_type: HashType, decryption: bool) -> GenericEncryptor:
+    def get_encryptor(
+            encryption_type: EncryptionType,
+            hash_type: HashType = HashType.PBKDF2,
+            decryption: bool = False) -> GenericEncryptor:
 
         hash_algo = HashProvider.get_hash(hash_type)
 
