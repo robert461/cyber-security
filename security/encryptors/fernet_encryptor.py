@@ -1,6 +1,8 @@
+import base64
+
 from cryptography.fernet import Fernet
 
-from security.utils.encryption_utils import EncryptionUtils
+from security.hashing.generic_hash import GenericHash
 from security.encryptors.generic_encryptor import GenericEncryptor
 
 
@@ -8,16 +10,16 @@ class FernetEncryptor(GenericEncryptor):
 
     # https://cryptography.io/en/latest/fernet/
 
-    def __init__(self):
+    def __init__(self, hash_algo: GenericHash):
         super().__init__()
 
-        key = EncryptionUtils.get_base64_key_from_user_input()
+        self.__hash_algo = hash_algo
 
-        self.__fernet = Fernet(key)
+        key = self.__hash_algo.get_key()
 
-        key = Fernet.generate_key()
+        key_base64 = base64.urlsafe_b64encode(key)
 
-        self.__fernet = Fernet(key)
+        self.__fernet = Fernet(key_base64)
 
     def encrypt(self, data: bytes) -> bytes:
         encrypted_data = self.__fernet.encrypt(data)

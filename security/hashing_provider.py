@@ -11,7 +11,7 @@ class HashingProvider:
         pass
 
     @staticmethod
-    def get_encryptor(hashing_type: HashingType) -> GenericHash:
+    def get_hash(hashing_type: HashingType) -> GenericHash:
         if not hashing_type or hashing_type == HashingType.NONE:
             return NoneHash()
 

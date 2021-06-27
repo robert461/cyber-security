@@ -2,16 +2,19 @@ import os
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
+from security.hashing.generic_hash import GenericHash
 from security.utils.encryption_utils import EncryptionUtils
 from security.encryptors.generic_encryptor import GenericEncryptor
 
 
 class AesEncryptor(GenericEncryptor):
 
-    def __init__(self):
+    def __init__(self, hash_algo: GenericHash):
         super().__init__()
 
-        key = EncryptionUtils.get_key_from_user_input()
+        self.__hash_algo = hash_algo
+
+        key = self.__hash_algo.get_key()
 
         nonce = os.urandom(16)
 
