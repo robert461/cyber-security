@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from security.encryptors.none_encryptor import NoneEncryptor
 from wav_steganography.wav_file import WAVFile
 
 audio_path = Path("audio")
@@ -26,7 +27,7 @@ def get_file_path(filename):
 def test_loading_and_plotting_wav_file():
     for audio_file in audio_path.glob("*.wav"):
         print(f"Loading audio file {audio_file}")
-        file = WAVFile(audio_file)
+        file = WAVFile(audio_file, NoneEncryptor())
         plots_path = audio_path / 'plots'
         plots_path.mkdir(exist_ok=True)
         file.plot(to_s=None, filename=plots_path / audio_file.name.replace(".wav", ".png"))
@@ -36,7 +37,7 @@ def test_loading_and_writing_wav_file():
     for audio_file in audio_path.glob("*.wav"):
         md5checksum = hashlib.md5(open(audio_file, 'rb').read()).hexdigest()
         print(f"Loading audio file {audio_file}")
-        file = WAVFile(audio_file)
+        file = WAVFile(audio_file, NoneEncryptor())
         written_path = audio_path / 'copied'
         written_path.mkdir(exist_ok=True)
         copied_file_path = written_path / audio_file.name
@@ -47,7 +48,7 @@ def test_loading_and_writing_wav_file():
 
 def test_encoding_decoding():
     for audio_file in audio_path.glob("*.wav"):
-        file = WAVFile(audio_file)
+        file = WAVFile(audio_file, NoneEncryptor())
 
         data_string = get_random_string(10000)
         data = data_string.encode("UTF-8")
@@ -58,7 +59,7 @@ def test_encoding_decoding():
 
         file.write(encoded_file_path, overwrite=True)
 
-        encoded_file = WAVFile(encoded_file_path)
+        encoded_file = WAVFile(encoded_file_path, NoneEncryptor())
 
         decoded_data = encoded_file.decode()
 
@@ -67,13 +68,13 @@ def test_encoding_decoding():
 
 
 def single_test_encoding_decoding_with_error_correction(audio_file, data):
-    file = WAVFile(audio_file)
+    file = WAVFile(audio_file, NoneEncryptor())
     encoded_file_path = get_file_path(audio_file.name)
 
     file.encode(data, error_correction = True)
     file.write(encoded_file_path, overwrite = True)
 
-    encoded_file = WAVFile(encoded_file_path)
+    encoded_file = WAVFile(encoded_file_path, NoneEncryptor())
     decoded_data = encoded_file.decode(error_correction = True)
 
     return decoded_data
