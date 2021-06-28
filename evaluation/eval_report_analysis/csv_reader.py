@@ -23,7 +23,7 @@ class CsvReader:
 
         with open(f'{self.__eval_reports_path}/{filename}') as csv_file:
 
-            csv_reader = csv.reader(csv_file, delimiter = ';', quotechar = '|')
+            csv_reader = csv.reader(csv_file, delimiter=';', quotechar='|')
             rows: List[List[str]] = []
 
             for reader_row in csv_reader:
