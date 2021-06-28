@@ -21,7 +21,7 @@ class EvalReportVisualizer:
             graph_height: int,
             show_y_labels: bool = True):
 
-        percentages, data, bar_labels, y_labels = self.__prepare_plot_data(values_dict)
+        data, bar_labels, y_labels = self.__prepare_plot_data(values_dict)
 
         for index, label in enumerate(bar_labels):
             bar_labels[index] = textwrap.fill(label, width=11)
@@ -69,14 +69,12 @@ class EvalReportVisualizer:
 
     @staticmethod
     def __prepare_plot_data(values_dict: Dict[str, Dict[str, int]]) -> \
-            Tuple[List[List[int]], List[List[float]], List[str], List[str]]:
+            Tuple[List[List[float]], List[str], List[str]]:
 
         y_labels: List[str] = [label for label in values_dict]
 
         for index, y_label in enumerate(y_labels):
             y_labels[index] = textwrap.fill(y_label, width=15)
-
-        all_rows = [list(values_dict[row].values()) for row in values_dict]
 
         percentages: List[List[float]] = []
         x_labels: List[str] = []
@@ -94,7 +92,7 @@ class EvalReportVisualizer:
 
             percentages.append(row_percentages)
 
-        return all_rows, percentages, x_labels, y_labels
+        return percentages, x_labels, y_labels
 
     @staticmethod
     def __generate_bar_labels(data: List[List[float]]) -> List[int]:
