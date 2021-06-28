@@ -53,8 +53,8 @@ class EvalReportVisualizer:
                 ax.annotate(
                     label_text,
                     xy = annotation_xy,
-                    horizontalalignment = 'center',
-                    verticalalignment = 'center'
+                    horizontalalignment='center',
+                    verticalalignment='center'
                 )
 
         ax.set_xlabel('Gesamtanteil in Prozent')
