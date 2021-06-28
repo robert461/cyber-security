@@ -49,6 +49,11 @@ class EvalReportAnalyzer:
 
             eval_report_result = bool(eval_report_entry[4])
 
+            if eval_report_entry[4] == 'True':
+                eval_report_result = True
+            elif eval_report_entry[4] == 'False':
+                eval_report_result = False
+
             if eval_report_result:
                 file_pairs[name]['True'] += 1
             elif not eval_report_result:
