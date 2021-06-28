@@ -13,6 +13,7 @@ class EvalReportVisualizer:
     def draw_pandas_barh(
             self,
             values_dict: Dict[str, Dict[str, int]],
+            graphs_path: str,
             filename: str,
             graph_height: int,
             show_y_labels: bool = True):
@@ -54,7 +55,7 @@ class EvalReportVisualizer:
         plt.yticks(range(len(y_labels)), y_labels)
 
         plt.tight_layout()
-        plt.savefig(f'graphs/{filename}', dpi = 500)
+        plt.savefig(f'{graphs_path}/{filename}', dpi = 500)
 
     @staticmethod
     def __prepare_plot_data(values_dict: Dict[str, Dict[str, int]]) -> \
