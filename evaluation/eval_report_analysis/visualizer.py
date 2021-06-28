@@ -21,12 +21,12 @@ class EvalReportVisualizer:
             graph_height: int,
             show_y_labels: bool = True):
 
-        data, percentage, bar_labels, y_labels = self.__prepare_plot_data(values_dict)
+        percentages, data, bar_labels, y_labels = self.__prepare_plot_data(values_dict)
 
         for index, label in enumerate(bar_labels):
-            bar_labels[index] = textwrap.fill(label, width = 11)
+            bar_labels[index] = textwrap.fill(label, width=11)
 
-        data_frame = pd.DataFrame(data = data, columns = bar_labels)
+        data_frame = pd.DataFrame(data=data, columns=bar_labels)
 
         if len(bar_labels) == 4:
             colormap = ListedColormap(['tab:blue', 'tab:orange', 'tab:green', 'tab:red'])
@@ -35,8 +35,8 @@ class EvalReportVisualizer:
         else:
             colormap = matplotlib.cm.get_cmap('Set1')
 
-        ax = data_frame.plot.barh(stacked = True, figsize = (12, graph_height), cmap = colormap)
-        ax.set_xlim(xmin = 0.0, xmax = 1.19)
+        ax = data_frame.plot.barh(stacked=True, figsize=(12, graph_height), cmap=colormap)
+        ax.set_xlim(xmin=0.0, xmax=1.19)
 
         bar_labels = self.__generate_bar_labels(data)
 
@@ -65,29 +65,29 @@ class EvalReportVisualizer:
         plt.yticks(range(len(y_labels)), y_labels)
 
         plt.tight_layout()
-        plt.savefig(f'{graphs_path}/{filename}', dpi = 500)
+        plt.savefig(f'{graphs_path}/{filename}', dpi=500)
 
     @staticmethod
     def __prepare_plot_data(values_dict: Dict[str, Dict[str, int]]) -> \
-            Tuple[List[List[int]], List[List[int]], List[str], List[str]]:
+            Tuple[List[List[int]], List[List[float]], List[str], List[str]]:
 
         y_labels: List[str] = [label for label in values_dict]
 
         for index, y_label in enumerate(y_labels):
-            y_labels[index] = textwrap.fill(y_label, width = 15)
+            y_labels[index] = textwrap.fill(y_label, width=15)
 
         all_rows = [list(values_dict[row].values()) for row in values_dict]
 
-        percentages: List[List[int]] = []
+        percentages: List[List[float]] = []
         x_labels: List[str] = []
 
         for value in values_dict:
-            row_percentages: List[int] = []
+            row_percentages: List[float] = []
 
             row_sum = sum(list(values_dict[value].values()))
 
             for column in values_dict[value]:
-                row_percentages.append(round(values_dict[value][column] / row_sum * 100))
+                row_percentages.append(values_dict[value][column] / row_sum)
 
                 if column not in x_labels:
                     x_labels.append(column)
