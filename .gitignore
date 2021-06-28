@@ -7,3 +7,4 @@ audio/copied
 audio/encoded
 evaluation/eval_reports/*
 *.pem
+*.png

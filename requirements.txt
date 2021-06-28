@@ -6,3 +6,4 @@ pytest
 playsound
 vext.gi
 cryptography
+simpleaudio
