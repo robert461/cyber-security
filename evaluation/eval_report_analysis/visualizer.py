@@ -97,7 +97,7 @@ class EvalReportVisualizer:
         return all_rows, percentages, x_labels, y_labels
 
     @staticmethod
-    def __generate_bar_labels(data: List[List[int]]) -> List[int]:
+    def __generate_bar_labels(data: List[List[float]]) -> List[int]:
         labels = []
         for row in data:
             labels_row = []
