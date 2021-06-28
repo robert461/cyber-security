@@ -30,6 +30,8 @@ class EvalReportVisualizer:
 
         if len(bar_labels) == 4:
             colormap = ListedColormap(['tab:blue', 'tab:orange', 'tab:green', 'tab:red'])
+        elif len(bar_labels) == 2:
+            colormap = ListedColormap(['tab:blue', 'tab:orange'])
         else:
             colormap = matplotlib.cm.get_cmap('Set1')
 

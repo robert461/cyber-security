@@ -18,9 +18,11 @@ def main():
     analyzer = EvalReportAnalyzer(eval_reports)
 
     choices_per_file_pair = analyzer.get_choices_per_file_pair()
+    results_per_file_pair = analyzer.get_results_per_file_pair()
 
     visualizer = EvalReportVisualizer()
     visualizer.draw_pandas_barh(choices_per_file_pair, graphs_path, 'choices_per_file_pair', 8)
+    visualizer.draw_pandas_barh(results_per_file_pair, graphs_path, 'results_per_file_pair', 8)
 
 
 if __name__ == "__main__":
