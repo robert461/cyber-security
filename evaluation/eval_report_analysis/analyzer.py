@@ -18,7 +18,7 @@ class EvalReportAnalyzer:
             files_used = [eval_report_entry[1], eval_report_entry[2]]
             files_used.sort()
 
-            name = f'{eval_report_entry[0]}-{files_used[0]}-{files_used[1]}'
+            name = f'{eval_report_entry[0]} {files_used[0]}-{files_used[1]}'
 
             if name not in file_pairs:
                 file_pairs[name] = {'True': 0, 'False': 0, 'Both': 0, 'None': 0}

@@ -1,3 +1,5 @@
+from typing import Dict, List, Tuple
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import textwrap
@@ -8,9 +10,14 @@ class EvalReportVisualizer:
     def __init__(self):
         pass
 
-    def draw_pandas_barh(self, values_dict, filename, graph_height, show_y_labels = True):
+    def draw_pandas_barh(
+            self,
+            values_dict: Dict[str, Dict[str, int]],
+            filename: str,
+            graph_height: int,
+            show_y_labels: bool = True):
 
-        y_labels, data, percentage, bar_labels = self.__prepare_plot_data(values_dict)
+        data, percentage, bar_labels, y_labels = self.__prepare_plot_data(values_dict)
 
         for index, label in enumerate(bar_labels):
             bar_labels[index] = textwrap.fill(label, width = 11)
@@ -46,42 +53,40 @@ class EvalReportVisualizer:
         ax.xaxis.set_major_formatter(lambda x, pos: f'{round(x * 100)}%')
         plt.yticks(range(len(y_labels)), y_labels)
 
-        # plt.show()
         plt.tight_layout()
         plt.savefig(f'graphs/{filename}', dpi = 500)
 
     @staticmethod
-    def __prepare_plot_data(values_dict):
+    def __prepare_plot_data(values_dict: Dict[str, Dict[str, int]]) -> \
+            Tuple[List[List[int]], List[List[int]], List[str], List[str]]:
 
-        y_labels = [label for label in values_dict]
+        y_labels: List[str] = [label for label in values_dict]
 
         for index, y_label in enumerate(y_labels):
             y_labels[index] = textwrap.fill(y_label, width = 15)
 
         all_rows = [list(values_dict[row].values()) for row in values_dict]
 
-        percentages = []
-        x_labels = []
+        percentages: List[List[int]] = []
+        x_labels: List[str] = []
 
         for value in values_dict:
-            row_percentages = []
+            row_percentages: List[int] = []
 
             row_sum = sum(list(values_dict[value].values()))
 
             for column in values_dict[value]:
                 row_percentages.append(round(values_dict[value][column] / row_sum * 100))
 
-                a = values_dict[value][column]
-
                 if column not in x_labels:
                     x_labels.append(column)
 
             percentages.append(row_percentages)
 
-        return y_labels, all_rows, percentages, x_labels
+        return all_rows, percentages, x_labels, y_labels
 
     @staticmethod
-    def __generate_bar_labels(data):
+    def __generate_bar_labels(data: List[List[int]]) -> List[int]:
         labels = []
         for row in data:
             labels_row = []
@@ -120,7 +125,7 @@ class EvalReportVisualizer:
                         labels[row_index][extreme_value_index] += 1
 
         # It's not actually flattened, more like a column-wise flattening
-        flattened_labels = []
+        flattened_labels: List[int] = []
         row_lengths = [len(row) for row in labels]
 
         for column_index in range(max(row_lengths)):
