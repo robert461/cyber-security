@@ -6,3 +6,4 @@ audio/plots
 audio/copied
 audio/encoded
 evaluation/eval_reports/*
+*.png
