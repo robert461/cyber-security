@@ -18,7 +18,6 @@ class EvalReportVisualizer:
             values_dict: Dict[str, Dict[str, int]],
             graphs_path: str,
             filename: str,
-            graph_height: int,
             show_y_labels: bool = True):
 
         data, bar_labels, y_labels = self.__prepare_plot_data(values_dict)
@@ -34,6 +33,8 @@ class EvalReportVisualizer:
             colormap = ListedColormap(['tab:blue', 'tab:orange'])
         else:
             colormap = matplotlib.cm.get_cmap('Set1')
+
+        graph_height = len(data) * 0.35
 
         ax = data_frame.plot.barh(stacked=True, figsize=(12, graph_height), cmap=colormap)
         ax.set_xlim(xmin=0.0, xmax=1.19)
