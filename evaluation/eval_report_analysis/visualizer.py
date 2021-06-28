@@ -1,8 +1,11 @@
 from typing import Dict, List, Tuple
 
+import matplotlib.cm
 import matplotlib.pyplot as plt
 import pandas as pd
 import textwrap
+
+from matplotlib.colors import ListedColormap
 
 
 class EvalReportVisualizer:
@@ -25,7 +28,12 @@ class EvalReportVisualizer:
 
         data_frame = pd.DataFrame(data = data, columns = bar_labels)
 
-        ax = data_frame.plot.barh(stacked = True, figsize = (12, graph_height), cmap = 'tab20')
+        if len(bar_labels) == 4:
+            colormap = ListedColormap(['tab:blue', 'tab:orange', 'tab:green', 'tab:red'])
+        else:
+            colormap = matplotlib.cm.get_cmap('Set1')
+
+        ax = data_frame.plot.barh(stacked = True, figsize = (12, graph_height), cmap = colormap)
         ax.set_xlim(xmin = 0.0, xmax = 1.19)
 
         bar_labels = self.__generate_bar_labels(data)
