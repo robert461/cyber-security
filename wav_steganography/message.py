@@ -1,8 +1,10 @@
 import struct
 from typing import Union, Optional, Tuple
 
+from security.encryption_provider import EncryptionProvider
 from security.encryptors.generic_encryptor import GenericEncryptor
 from security.encryptors.none_encryptor import NoneEncryptor
+from security.enums.encryption_type import EncryptionType
 from wav_steganography.data_chunk import DataChunk
 from error_correction.hamming_error_correction import HammingErrorCorrection
 
@@ -11,7 +13,7 @@ class Message:
     """ A message class implementing an Encoder and an Decoder
 
     This header is used to encode the meta information for the message before the actual data part.
-    Currently, this is 7 values:
+    Currently, this consists of 7 values:
         * The least significant bits used in the data
         * The nth bits used in the data
         * The number of redundant bits per byte used in the data (4 means a byte becomes 12 bits in size)
@@ -33,7 +35,7 @@ class Message:
             least_significant_bits: int,
             every_nth_byte: int,
             redundant_bits: int,
-            encryptor: Optional[GenericEncryptor] = NoneEncryptor(),
+            encryptor: GenericEncryptor = NoneEncryptor(),
     ) -> Tuple[DataChunk, DataChunk]:
 
         data: bytes = Message.__message_as_bytes(data)
@@ -48,8 +50,8 @@ class Message:
             every_nth_byte,
             redundant_bits,
             encryptor.encryption_type.value,
-            b"0" * 16,  # salt
-            b"0" * 16,  # nonce
+            b"0" * 16,  # salt TODO: encryptor.get_salt()
+            b"0" * 16,  # nonce TODO: encryptor.get_nonce()
             len(data),
         )
         header_chunk = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
@@ -58,11 +60,13 @@ class Message:
 
     @staticmethod
     def decode_message(
-            data: bytes,
-            encryptor: Optional[GenericEncryptor] = NoneEncryptor(),
-            redundant_bits: int = 4,
+            header_bytes: bytes,
+            data_bytes: bytes,
     ):
-        data = Message.__decode_error_correction(data, redundant_bits)
+        *_, redundant_bits, encryption_type, salt, nonce, data_size = \
+            struct.unpack(Message.HEADER_FORMAT, header_bytes)
+        encryptor = EncryptionProvider.get_encryptor(EncryptionType(encryption_type), decryption=True)
+        data = Message.__decode_error_correction(data_bytes, redundant_bits)
         data = Message.__decrypt(data, encryptor)
 
         return data
