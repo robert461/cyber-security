@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -11,7 +12,7 @@ class Pbkdf2Hash(GenericHash):
 
     # https://cryptography.io/en/latest/hazmat/primitives/key-derivation-functions/#pbkdf2
 
-    def __init__(self):
+    def __init__(self, is_test: Optional[bool] = False):
         super().__init__()
 
         # defaults
@@ -20,12 +21,14 @@ class Pbkdf2Hash(GenericHash):
 
         self.__salt_length = 16
 
+        self.__is_test = is_test
+
     def get_key(self) -> bytes:
 
         salt = os.urandom(self.__salt_length)
         print(f'salt: {salt.hex()}')
 
-        password_bytes = HashUtils.get_password_from_user()
+        password_bytes = HashUtils.get_password(self.__is_test)
 
         key = self.__derive_key(password_bytes, salt)
 
@@ -52,10 +55,10 @@ class Pbkdf2Hash(GenericHash):
 
     def __get_kdf_instance(self, salt):
         kdf = PBKDF2HMAC(
-            algorithm = hashes.SHA256(),
-            length = self.__hash_length,
-            salt = salt,
-            iterations = self.__hash_iterations,
+            algorithm=hashes.SHA256(),
+            length=self.__hash_length,
+            salt=salt,
+            iterations=self.__hash_iterations,
         )
 
         return kdf

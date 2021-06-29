@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
@@ -10,7 +11,7 @@ class ScryptHash(GenericHash):
 
     # https://cryptography.io/en/latest/hazmat/primitives/key-derivation-functions/#scrypt
 
-    def __init__(self):
+    def __init__(self, is_test: Optional[bool] = False):
         super().__init__()
 
         # defaults
@@ -21,12 +22,14 @@ class ScryptHash(GenericHash):
 
         self.__salt_length = 16
 
+        self.__is_test = is_test
+
     def get_key(self) -> bytes:
 
         salt = os.urandom(self.__salt_length)
         print(f'salt: {salt.hex()}')
 
-        password_bytes = HashUtils.get_password_from_user()
+        password_bytes = HashUtils.get_password(self.__is_test)
 
         key = self.__derive_key(password_bytes, salt)
 

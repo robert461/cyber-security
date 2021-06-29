@@ -5,7 +5,10 @@ from pathlib import Path
 
 import pytest
 
+from security.encryption_provider import EncryptionProvider
 from security.encryptors.none_encryptor import NoneEncryptor
+from security.enums.encryption_type import EncryptionType
+from security.enums.hash_type import HashType
 from wav_steganography.wav_file import WAVFile
 
 audio_path = Path("audio")
@@ -67,15 +70,15 @@ def test_encoding_decoding():
             decoded_data == data, "Decoded message is not the same as the encoded one!"
 
 
-def single_test_encoding_decoding_with_error_correction(audio_file, data):
-    file = WAVFile(audio_file, NoneEncryptor())
+def single_test_encoding_decoding_with_error_correction(audio_file, data, encryptor):
+    file = WAVFile(audio_file, encryptor)
     encoded_file_path = get_file_path(audio_file.name)
 
-    file.encode(data, error_correction = True)
-    file.write(encoded_file_path, overwrite = True)
+    file.encode(data, error_correction=True)
+    file.write(encoded_file_path, overwrite=True)
 
     encoded_file = WAVFile(encoded_file_path, NoneEncryptor())
-    decoded_data = encoded_file.decode(error_correction = True)
+    decoded_data = encoded_file.decode(error_correction=True)
 
     return decoded_data
 
@@ -85,10 +88,30 @@ def test_multiple_encoding_decoding_with_error_correction():
         data_string = get_random_string(1000)
         data = data_string.encode("UTF-8")
 
-        decoded_data = single_test_encoding_decoding_with_error_correction(audio_file, data)
+        decoded_data = single_test_encoding_decoding_with_error_correction(audio_file, data, NoneEncryptor())
 
         assert \
             decoded_data == data, "Decoded and corrected message is not the same as the encoded one!"
+
+
+def test_multiple_encoding_with_error_correction_and_encryption():
+    fernet_pbkdf2_encryptor = EncryptionProvider.get_encryptor(EncryptionType.FERNET, HashType.PBKDF2, is_test=True)
+    fernet_scrypt_encryptor = EncryptionProvider.get_encryptor(EncryptionType.FERNET, HashType.SCRYPT, is_test=True)
+    aes_pbkdf2_encryptor = EncryptionProvider.get_encryptor(EncryptionType.AES, HashType.PBKDF2, is_test=True)
+    aes_scrypt_encryptor = EncryptionProvider.get_encryptor(EncryptionType.AES, HashType.SCRYPT, is_test=True)
+    rsa_encryptor = EncryptionProvider.get_encryptor(EncryptionType.RSA, is_test=True)
+
+    encryptors = [fernet_pbkdf2_encryptor, fernet_scrypt_encryptor,
+                  aes_pbkdf2_encryptor, aes_scrypt_encryptor, rsa_encryptor]
+
+    for encryptor in encryptors:
+
+        for audio_file in audio_path.glob("*.wav"):
+            data_string = get_random_string(1000)
+            data = data_string.encode("UTF-8")
+
+            file = WAVFile(audio_file, encryptor)
+            file.encode(data, error_correction=True)
 
 
 def test_multiple_encoding_decoding_with_error_correction_and_oversized_data():
@@ -97,4 +120,4 @@ def test_multiple_encoding_decoding_with_error_correction_and_oversized_data():
             data_string = get_random_string(10000)
             data = data_string.encode("UTF-8")
 
-            single_test_encoding_decoding_with_error_correction(audio_file, data)
+            single_test_encoding_decoding_with_error_correction(audio_file, data, NoneEncryptor())

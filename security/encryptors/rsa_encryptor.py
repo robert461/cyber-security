@@ -1,4 +1,5 @@
 from getpass import getpass
+from typing import Optional
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
@@ -10,7 +11,7 @@ class RsaEncryptor(GenericEncryptor):
 
     # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/rsa/
 
-    def __init__(self, decryption: bool):
+    def __init__(self, decryption: bool, is_test: Optional[bool] = False):
         super().__init__()
 
         if decryption:
@@ -26,7 +27,10 @@ class RsaEncryptor(GenericEncryptor):
             self.__private_key = rsa.generate_private_key(public_exponent = 65537, key_size = 2048, )
             self.__public_key = self.__private_key.public_key()
 
-            private_key_password = getpass('Please enter a password for the private key (empty = no encryption): ')
+            if is_test:
+                private_key_password = 'abcdefghij'
+            else:
+                private_key_password = getpass('Please enter a password for the private key (empty = no encryption): ')
             self.__save_keys(private_key_password)
 
     def encrypt(self, data: bytes) -> bytes:
