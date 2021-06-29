@@ -23,18 +23,27 @@ class EvalReportAnalyzer:
                 files_used = [eval_report_entry[1], eval_report_entry[2]]
                 files_used.sort()
 
+                eval_report_choice = eval_report_entry[3]
+
+                # switch first with second if list was sorted
+                if not files_used == [eval_report_entry[1], eval_report_entry[2]]:
+                    if eval_report_choice == EvalReportChoice.FIRST:
+                        eval_report_choice = EvalReportChoice.SECOND
+                    elif eval_report_choice == EvalReportChoice.SECOND:
+                        eval_report_choice = EvalReportChoice.FIRST
+
                 name = f'{files_used[0]}-{files_used[1]}'
 
                 if name not in file_pairs:
                     file_pairs[name] = {'First': 0, 'Second': 0, 'Both': 0, 'None': 0}
 
-                if eval_report_entry[3] == EvalReportChoice.TRUE:
+                if eval_report_choice == EvalReportChoice.FIRST:
                     file_pairs[name]['First'] += 1
-                elif eval_report_entry[3] == EvalReportChoice.FALSE:
+                elif eval_report_choice == EvalReportChoice.SECOND:
                     file_pairs[name]['Second'] += 1
-                elif eval_report_entry[3] == EvalReportChoice.BOTH:
+                elif eval_report_choice == EvalReportChoice.BOTH:
                     file_pairs[name]['Both'] += 1
-                elif eval_report_entry[3] == EvalReportChoice.NONE:
+                elif eval_report_choice == EvalReportChoice.NONE:
                     file_pairs[name]['None'] += 1
 
             entries_by_files[entries_by_file] = file_pairs
