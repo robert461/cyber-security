@@ -7,6 +7,7 @@ import pytest
 
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.none_encryptor import NoneEncryptor
+from security.encryptors.rsa_encryptor import RsaEncryptor
 from security.enums.encryption_type import EncryptionType
 from security.enums.hash_type import HashType
 from wav_steganography.wav_file import WAVFile
@@ -107,7 +108,13 @@ def test_multiple_encoding_with_error_correction_and_encryption():
     for encryptor in encryptors:
 
         for audio_file in audio_path.glob("*.wav"):
-            data_string = get_random_string(1000)
+
+            if type(encryptor) == RsaEncryptor:
+                data_length = 100
+            else:
+                data_length = 1000
+
+            data_string = get_random_string(data_length)
             data = data_string.encode("UTF-8")
 
             file = WAVFile(audio_file, encryptor)
