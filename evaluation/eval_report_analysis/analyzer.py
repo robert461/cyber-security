@@ -7,59 +7,72 @@ class EvalReportAnalyzer:
 
     def __init__(self, eval_reports: List[List[List[str]]]):
 
-        self.__eval_report_entries = self.__flatten_eval_report_entries(eval_reports)
+        eval_report_entries = self.__flatten_eval_report_entries(eval_reports)
 
-    def get_choices_per_file_pair(self) -> Dict[str, Dict[str, int]]:
+        self.__eval_report_entries_by_files = self.__sort_eval_report_entries_by_file(eval_report_entries)
 
-        file_pairs: Dict[str, Dict[str, int]] = {}
+    def get_choices_per_file_pair(self) -> Dict[str, Dict[str, Dict[str, int]]]:
 
-        for eval_report_entry in self.__eval_report_entries:
+        entries_by_files = {}
 
-            files_used = [eval_report_entry[1], eval_report_entry[2]]
-            files_used.sort()
+        for entries_by_file in self.__eval_report_entries_by_files:
+            file_pairs: Dict[str, Dict[str, int]] = {}
 
-            name = f'{eval_report_entry[0]} {files_used[0]}-{files_used[1]}'
+            for eval_report_entry in self.__eval_report_entries_by_files[entries_by_file]:
 
-            if name not in file_pairs:
-                file_pairs[name] = {'First': 0, 'Second': 0, 'Both': 0, 'None': 0}
+                files_used = [eval_report_entry[1], eval_report_entry[2]]
+                files_used.sort()
 
-            if eval_report_entry[3] == EvalReportChoice.TRUE:
-                file_pairs[name]['First'] += 1
-            elif eval_report_entry[3] == EvalReportChoice.FALSE:
-                file_pairs[name]['Second'] += 1
-            elif eval_report_entry[3] == EvalReportChoice.BOTH:
-                file_pairs[name]['Both'] += 1
-            elif eval_report_entry[3] == EvalReportChoice.NONE:
-                file_pairs[name]['None'] += 1
+                name = f'{files_used[0]}-{files_used[1]}'
 
-        return file_pairs
+                if name not in file_pairs:
+                    file_pairs[name] = {'First': 0, 'Second': 0, 'Both': 0, 'None': 0}
 
-    def get_results_per_file_pair(self) -> Dict[str, Dict[str, int]]:
-        file_pairs: Dict[str, Dict[str, int]] = {}
+                if eval_report_entry[3] == EvalReportChoice.TRUE:
+                    file_pairs[name]['First'] += 1
+                elif eval_report_entry[3] == EvalReportChoice.FALSE:
+                    file_pairs[name]['Second'] += 1
+                elif eval_report_entry[3] == EvalReportChoice.BOTH:
+                    file_pairs[name]['Both'] += 1
+                elif eval_report_entry[3] == EvalReportChoice.NONE:
+                    file_pairs[name]['None'] += 1
 
-        for eval_report_entry in self.__eval_report_entries:
+            entries_by_files[entries_by_file] = file_pairs
 
-            files_used = [eval_report_entry[1], eval_report_entry[2]]
-            files_used.sort()
+        return entries_by_files
 
-            name = f'{eval_report_entry[0]} {files_used[0]}-{files_used[1]}'
+    def get_results_per_file_pair(self) -> Dict[str, Dict[str, Dict[str, int]]]:
 
-            if name not in file_pairs:
-                file_pairs[name] = {'True': 0, 'False': 0}
+        entries_by_files = {}
 
-            eval_report_result = bool(eval_report_entry[4])
+        for entries_by_file in self.__eval_report_entries_by_files:
+            file_pairs: Dict[str, Dict[str, int]] = {}
 
-            if eval_report_entry[4] == 'True':
-                eval_report_result = True
-            elif eval_report_entry[4] == 'False':
-                eval_report_result = False
+            for eval_report_entry in self.__eval_report_entries_by_files[entries_by_file]:
 
-            if eval_report_result:
-                file_pairs[name]['True'] += 1
-            elif not eval_report_result:
-                file_pairs[name]['False'] += 1
+                files_used = [eval_report_entry[1], eval_report_entry[2]]
+                files_used.sort()
 
-        return file_pairs
+                name = f'{files_used[0]}-{files_used[1]}'
+
+                if name not in file_pairs:
+                    file_pairs[name] = {'True': 0, 'False': 0}
+
+                eval_report_result = bool(eval_report_entry[4])
+
+                if eval_report_entry[4] == 'True':
+                    eval_report_result = True
+                elif eval_report_entry[4] == 'False':
+                    eval_report_result = False
+
+                if eval_report_result:
+                    file_pairs[name]['True'] += 1
+                elif not eval_report_result:
+                    file_pairs[name]['False'] += 1
+
+            entries_by_files[entries_by_file] = file_pairs
+
+        return entries_by_files
 
     @staticmethod
     def __flatten_eval_report_entries(eval_reports: List[List[List[str]]]) -> List[List[str]]:
@@ -68,3 +81,17 @@ class EvalReportAnalyzer:
             [eval_report_entry for eval_report in eval_reports for eval_report_entry in eval_report]
 
         return flattened_eval_reports
+
+    @staticmethod
+    def __sort_eval_report_entries_by_file(eval_report_entries: List[List[str]]):
+        entries_by_files: Dict[str, List[List[str]]] = {}
+
+        for eval_report_entry in eval_report_entries:
+            filename = eval_report_entry[0]
+
+            if filename not in entries_by_files:
+                entries_by_files[filename] = []
+
+            entries_by_files[filename].append(eval_report_entry)
+
+        return entries_by_files

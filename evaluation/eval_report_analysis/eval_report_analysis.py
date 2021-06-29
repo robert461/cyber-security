@@ -17,12 +17,12 @@ def main():
 
     analyzer = EvalReportAnalyzer(eval_reports)
 
-    choices_per_file_pair = analyzer.get_choices_per_file_pair()
-    results_per_file_pair = analyzer.get_results_per_file_pair()
+    choices_per_files = analyzer.get_choices_per_file_pair()
+    results_per_files = analyzer.get_results_per_file_pair()
 
     visualizer = EvalReportVisualizer()
-    visualizer.draw_pandas_barh(choices_per_file_pair, graphs_path, 'choices_per_file_pair')
-    visualizer.draw_pandas_barh(results_per_file_pair, graphs_path, 'results_per_file_pair')
+    visualizer.draw_pandas_barh_for_each_file(choices_per_files, graphs_path, 'choices_per_file_pair')
+    visualizer.draw_pandas_barh_for_each_file(results_per_files, graphs_path, 'results_per_file_pair')
 
 
 if __name__ == "__main__":

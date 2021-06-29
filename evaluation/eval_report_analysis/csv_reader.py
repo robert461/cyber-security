@@ -28,6 +28,8 @@ class CsvReader:
 
             for reader_row in csv_reader:
                 if not reader_row[0] == 'Example Name':
+                    reader_row[0] = reader_row[0].replace('.wav', '')
+
                     rows.append(reader_row)
 
             return rows
