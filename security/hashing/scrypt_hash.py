@@ -46,15 +46,21 @@ class ScryptHash(GenericHash):
         return key
 
     def __derive_key(self, password_bytes: bytes, salt: bytes) -> bytes:
-        kdf = Scrypt(
-            salt = salt,
-            length = self.__hash_length,
-            n = self.__cost_parameter,
-            r = self.__block_size,
-            p = self.__parallelization,
-        )
-
+        kdf = self.__get_kdf_instance(salt)
         key = kdf.derive(password_bytes)
+
+        kdf = self.__get_kdf_instance(salt)
         kdf.verify(password_bytes, key)
 
         return key
+
+    def __get_kdf_instance(self, salt):
+        kdf = Scrypt(
+            salt=salt,
+            length=self.__hash_length,
+            n=self.__cost_parameter,
+            r=self.__block_size,
+            p=self.__parallelization,
+        )
+
+        return kdf
