@@ -1,5 +1,4 @@
-from typing import Optional
-from encryption.generic_encryptor import GenericEncryptor
+from security.encryptors.generic_encryptor import GenericEncryptor
 
 
 class NoneEncryptor(GenericEncryptor):
@@ -8,9 +7,6 @@ class NoneEncryptor(GenericEncryptor):
 
     def __init__(self):
         super().__init__()
-
-    def configure(self, force_use_existing_credentials: Optional[bool] = False):
-        pass
 
     def encrypt(self, data: bytes) -> bytes:
         return data

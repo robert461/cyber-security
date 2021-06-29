@@ -1,8 +1,8 @@
 import struct
 from typing import Union, Optional
 
-from encryption.generic_encryptor import GenericEncryptor
-from encryption.none_encryptor import NoneEncryptor
+from security.encryptors.generic_encryptor import GenericEncryptor
+from security.encryptors.none_encryptor import NoneEncryptor
 from wav_steganography.data_chunk import DataChunk
 from error_correction.hamming_error_correction import HammingErrorCorrection
 
@@ -37,10 +37,10 @@ class Message:
 
         data: bytes = Message.__message_as_bytes(data)
 
+        data = Message.__encrypt(data, encryptor)
+
         if error_correction:
             data = Message.__encode_error_correction(data, redundant_bits)
-
-        data = Message.__encrypt(data, encryptor)
 
         header_data = struct.pack(Message.HEADER_FORMAT, least_significant_bits, every_nth_byte, len(data))
         self.header = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
@@ -53,10 +53,10 @@ class Message:
             redundant_bits: int = 4,
             error_correction: bool = False):
 
-        data = self.__decrypt(data, encryptor)
-
         if error_correction:
             data = self.__decode_error_correction(data, redundant_bits)
+
+        data = self.__decrypt(data, encryptor)
 
         return data
 

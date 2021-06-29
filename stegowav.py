@@ -3,8 +3,9 @@
 import argparse
 from pathlib import Path
 
-from encryption.encryption_provider import EncryptionProvider
-from encryption.encryption_type import EncryptionType
+from security.encryption_provider import EncryptionProvider
+from security.enums.encryption_type import EncryptionType
+from security.enums.hash_type import HashType
 from wav_steganography.wav_file import WAVFile
 
 
@@ -16,9 +17,15 @@ def main():
                         help="if the file specified as output should be overwritten")
     parser.add_argument("-e", "--encode", type=str, help="encode text message into wav file")
     parser.add_argument("-d", "--decode", action="store_true", help="decode text message from wav file")
+
     possible_encryption_values = ', '.join(f"{enc.value}: {enc.name}" for enc in EncryptionType)
-    parser.add_argument("-t", "--encryption_type", type=int, default=0,
-                        help=f"encryption type as number to use ({possible_encryption_values})")
+    possible_hash_values = ', '.join(f"{ht.value}: {ht.name}" for ht in HashType)
+    parser.add_argument("-t", "--encryption_type", type=int, default=EncryptionType.NONE,
+                        help=f"encryption type as number to use ({possible_encryption_values}). "
+                             f"Certain encryptors require certain hashes!")
+    parser.add_argument("-a", "--hash_type", type=int, default=HashType.PBKDF2,
+                        help=f"hash type as number to use ({possible_hash_values})")
+
     parser.add_argument("-r", "--redundant_bits", type=int, default=4,
                         help="number of redundant bits for hamming code")
     parser.add_argument("-c", "--error_correction", action="store_true",
@@ -26,9 +33,17 @@ def main():
 
     args = parser.parse_args()
 
-    wav_file = WAVFile(args.input)
-
     encryption_type = EncryptionType(args.encryption_type)
+    hash_type = HashType(args.hash_type)
+
+    decryption = False
+    if args.decode:
+        decryption = True
+
+    encryptor = EncryptionProvider.get_encryptor(encryption_type, hash_type, decryption)
+
+    wav_file = WAVFile(args.input, encryptor)
+
     redundant_bits = args.redundant_bits
     error_correction = args.error_correction
 
@@ -36,17 +51,11 @@ def main():
         wav_file.encode(
             args.encode.encode("UTF-8"),
             redundant_bits = redundant_bits,
-            encryption_type = encryption_type,
             error_correction = error_correction)
 
     if args.decode:
-        encryptor = EncryptionProvider.get_encryptor(encryption_type=encryption_type)
-        if encryptor:
-            encryptor.configure(True)
-
         decoded_message = wav_file.decode(
             redundant_bits=redundant_bits,
-            encryption_type=encryption_type,
             error_correction=error_correction)
 
         decoded_string = decoded_message.decode("UTF-8")

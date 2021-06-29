@@ -1,4 +1,3 @@
-import sys
 import textwrap
 from collections import OrderedDict
 from pathlib import Path
@@ -8,11 +7,11 @@ from typing import Optional, Union, List, Tuple
 import numpy as np
 import pandas as pd
 
-from encryption.encryption_provider import EncryptionProvider
-from encryption.encryption_type import EncryptionType
-from encryption.generic_encryptor import GenericEncryptor
+from security.encryption_provider import EncryptionProvider
+from security.encryptors.generic_encryptor import GenericEncryptor
+from security.enums.encryption_type import EncryptionType
+from security.enums.hash_type import HashType
 from wav_steganography.message import Message
-from error_correction.hamming_error_correction import HammingErrorCorrection
 
 
 class WAVFile:
@@ -53,7 +52,7 @@ class WAVFile:
         ("Subchunk2Size", '<i', 4, None),
     ]
 
-    def __init__(self, filename: Union[Path, str]):
+    def __init__(self, filename: Union[Path, str], encryptor: GenericEncryptor):
         """ Parse WAV file given a path to audio file """
         self.header = h = OrderedDict()
         with open(filename, 'rb') as wav_file:
@@ -76,6 +75,8 @@ class WAVFile:
 
             # Parse the actual data
             self.data = np.array(struct.unpack(self._get_data_format(), wav_file.read(h['Subchunk2Size'])))
+
+        self.__encryptor = encryptor
 
     def _data_as_channel_data_frame(self, data_arr: np.ndarray) -> pd.DataFrame:
         return pd.DataFrame(data={
@@ -130,7 +131,6 @@ class WAVFile:
             least_significant_bits: int = 2,
             every_nth_byte: int = 1,
             redundant_bits: int = 4,
-            encryption_type: Optional[EncryptionType] = EncryptionType.NONE,
             error_correction: bool = False
         ):
         """ Encode a message in the given WAVFile
@@ -142,15 +142,12 @@ class WAVFile:
 
         message = Message()
 
-        encryptor = EncryptionProvider.get_encryptor(encryption_type)
-        encryptor.configure()
-
         message.encode_message(
             data,
             least_significant_bits,
             every_nth_byte,
             redundant_bits,
-            encryptor,
+            self.__encryptor,
             error_correction)
 
         byte_index = 0
@@ -177,7 +174,6 @@ class WAVFile:
 
         decoded_message = self.decode(
             redundant_bits=redundant_bits,
-            encryption_type=encryption_type,
             error_correction = error_correction)
 
         assert decoded_message == data,\
@@ -225,14 +221,12 @@ class WAVFile:
     def decode(
             self,
             redundant_bits: int = 4,
-            error_correction: bool = False,
-            encryption_type: Optional[EncryptionType] = EncryptionType.NONE) -> bytes:
+            error_correction: bool = False) -> bytes:
 
         message_bytes = self._get_message()
 
         message = Message()
-        encryptor = EncryptionProvider.get_encryptor(encryption_type = encryption_type)
 
-        decoded_message = message.decode_message(message_bytes, encryptor, redundant_bits, error_correction)
+        decoded_message = message.decode_message(message_bytes, self.__encryptor, redundant_bits, error_correction)
 
         return decoded_message
