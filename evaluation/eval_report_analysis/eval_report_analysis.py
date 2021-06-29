@@ -21,8 +21,8 @@ def main():
     results_per_files = analyzer.get_results_per_file_pair()
 
     visualizer = EvalReportVisualizer()
-    visualizer.draw_pandas_barh_for_each_file(choices_per_files, graphs_path, 'choices_per_file_pair')
-    visualizer.draw_pandas_barh_for_each_file(results_per_files, graphs_path, 'results_per_file_pair')
+    visualizer.draw_pandas_barh_for_each_file(choices_per_files, graphs_path, 'choices')
+    visualizer.draw_pandas_barh_for_each_file(results_per_files, graphs_path, 'results')
 
 
 if __name__ == "__main__":
