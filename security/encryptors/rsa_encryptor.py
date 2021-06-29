@@ -1,5 +1,4 @@
 from getpass import getpass
-from typing import Optional
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
@@ -11,7 +10,7 @@ class RsaEncryptor(GenericEncryptor):
 
     # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/rsa/
 
-    def __init__(self, decryption: bool, is_test: Optional[bool] = False):
+    def __init__(self, decryption: bool, is_test: bool = False):
         super().__init__()
 
         if decryption:
@@ -23,23 +22,20 @@ class RsaEncryptor(GenericEncryptor):
             self.__public_key = self.__private_key.public_key()
 
         else:
-
-            self.__private_key = rsa.generate_private_key(public_exponent = 65537, key_size = 2048, )
+            self.__private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
             self.__public_key = self.__private_key.public_key()
 
-            if is_test:
-                private_key_password = 'abcdefghij'
-            else:
+            if not is_test:
                 private_key_password = getpass('Please enter a password for the private key (empty = no encryption): ')
-            self.__save_keys(private_key_password)
+                self.__save_keys(private_key_password)
 
     def encrypt(self, data: bytes) -> bytes:
         encrypted_data = self.__public_key.encrypt(
             data,
             padding.OAEP(
-                mgf = padding.MGF1(algorithm = hashes.SHA256()),
-                algorithm = hashes.SHA256(),
-                label = None
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
             )
         )
 
@@ -49,9 +45,9 @@ class RsaEncryptor(GenericEncryptor):
         encrypted_data = self.__private_key.decrypt(
             data,
             padding.OAEP(
-                mgf = padding.MGF1(hashes.SHA256()),
-                algorithm = hashes.SHA256(),
-                label = None
+                mgf=padding.MGF1(hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
             )
         )
 
@@ -65,9 +61,9 @@ class RsaEncryptor(GenericEncryptor):
             encryption = serialization.NoEncryption()
 
         private_pem = self.__private_key.private_bytes(
-            encoding = serialization.Encoding.PEM,
-            format = serialization.PrivateFormat.PKCS8,
-            encryption_algorithm = encryption
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=encryption
         )
 
         self.__save_key('private_key', private_pem)
