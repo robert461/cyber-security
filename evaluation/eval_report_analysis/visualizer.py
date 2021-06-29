@@ -82,6 +82,8 @@ class EvalReportVisualizer:
         ax.xaxis.set_major_formatter(lambda x, pos: f'{round(x * 100)}%')
         plt.yticks(range(len(y_labels)), y_labels)
 
+        plt.title(f'{filename}')
+
         plt.tight_layout()
         plt.savefig(f'{graphs_path}/{filename}', dpi=500)
 
