@@ -2,6 +2,7 @@
 
 import argparse
 from pathlib import Path
+import cProfile
 
 from security.encryption_provider import EncryptionProvider
 from security.enums.encryption_type import EncryptionType
@@ -9,7 +10,7 @@ from security.enums.hash_type import HashType
 from wav_steganography.wav_file import WAVFile
 
 
-def main():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Encode message into a WAV file.")
     parser.add_argument("input", type=str, help="input file path")
     parser.add_argument("-o", "--output", type=str, help="output file path to be written to")
@@ -37,7 +38,12 @@ def main():
     parser.add_argument("--use_nth_byte", type=int, default=1,
                         help="use only every nth byte (e.g. if 4: 1 byte will be used for data, 3 will be skipped)")
 
-    args = parser.parse_args()
+    parser.add_argument("--profile", action="store_true", help="profile code (show which parts are taking long)")
+
+    return parser.parse_args()
+
+
+def handle_args(args):
 
     encryption_type = EncryptionType(args.encryption_type)
     hash_type = HashType(args.hash_type)
@@ -65,6 +71,16 @@ def main():
     if args.output:
         wav_file.write(Path(args.output), overwrite=args.overwrite)
         print(f"Written to {args.output}!")
+
+
+def main():
+    args = parse_arguments()
+    if args.profile:
+        with cProfile.Profile() as pr:
+            handle_args(args)
+        pr.print_stats()
+    else:
+        handle_args(args)
 
 
 if __name__ == "__main__":

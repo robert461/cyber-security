@@ -9,6 +9,7 @@ import pandas as pd
 
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.generic_encryptor import GenericEncryptor
+from security.encryptors.none_encryptor import NoneEncryptor
 from security.enums.encryption_type import EncryptionType
 from security.enums.hash_type import HashType
 from wav_steganography.message import Message
@@ -52,7 +53,7 @@ class WAVFile:
         ("Subchunk2Size", '<i', 4, None),
     ]
 
-    def __init__(self, filename: Union[Path, str], encryptor: GenericEncryptor):
+    def __init__(self, filename: Union[Path, str], encryptor: GenericEncryptor = NoneEncryptor):
         """ Parse WAV file given a path to audio file """
         self.header = h = OrderedDict()
         with open(filename, 'rb') as wav_file:
