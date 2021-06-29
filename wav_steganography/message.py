@@ -1,5 +1,5 @@
 import struct
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 
 from security.encryptors.generic_encryptor import GenericEncryptor
 from security.encryptors.none_encryptor import NoneEncryptor
@@ -11,58 +11,67 @@ class Message:
     """ A message class implementing an Encoder and an Decoder
 
     This header is used to encode the meta information for the message before the actual data part.
-    Currently, this is 3 integers, 7 bytes:
+    Currently, this is 7 values:
         * The least significant bits used in the data
         * The nth bits used in the data
-        * The length in data in bytes (excluding the header)
+        * The number of redundant bits per byte used in the data (4 means a byte becomes 12 bits in size)
+        * The encryption type (0 to 3, as defined in EncryptionType)
+        * The password hash salt (hardcoded as 16 bytes, only used if encryption is used)
+        * The nonce (hardcoded as 16 bytes, only used if encryption is AES)
+        * The length of the data in bytes (excluding the header)
     For the header, the values are defined below.
     """
-    HEADER_FORMAT = "<BHI"
+    HEADER_FORMAT = "<BHHB16s16sI"
     HEADER_BYTE_SIZE = struct.calcsize(HEADER_FORMAT)
     HEADER_LSB_COUNT = 1
     HEADER_EVERY_NTH_BYTE = 1
+    HEADER_REDUNDANT_BITS = 0
 
-    def __init__(self):
-        self.header = None
-        self.data = None
-
+    @staticmethod
     def encode_message(
-            self,
             data: Union[bytes, str],
             least_significant_bits: int,
             every_nth_byte: int,
             redundant_bits: int,
             encryptor: Optional[GenericEncryptor] = NoneEncryptor(),
-            error_correction: bool = False):
+    ) -> Tuple[DataChunk, DataChunk]:
 
         data: bytes = Message.__message_as_bytes(data)
 
+        # Encrypt first, then add error correction in this order
         data = Message.__encrypt(data, encryptor)
+        data = Message.__encode_error_correction(data, redundant_bits)
 
-        if error_correction:
-            data = Message.__encode_error_correction(data, redundant_bits)
+        header_data = struct.pack(
+            Message.HEADER_FORMAT,
+            least_significant_bits,
+            every_nth_byte,
+            redundant_bits,
+            encryptor.encryption_type.value,
+            b"0" * 16,  # salt
+            b"0" * 16,  # nonce
+            len(data),
+        )
+        header_chunk = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
+        data_chunk = DataChunk(data, least_significant_bits, every_nth_byte)
+        return header_chunk, data_chunk
 
-        header_data = struct.pack(Message.HEADER_FORMAT, least_significant_bits, every_nth_byte, len(data))
-        self.header = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
-        self.data = DataChunk(data, least_significant_bits, every_nth_byte)
-
+    @staticmethod
     def decode_message(
-            self,
             data: bytes,
             encryptor: Optional[GenericEncryptor] = NoneEncryptor(),
             redundant_bits: int = 4,
-            error_correction: bool = False):
-
-        if error_correction:
-            data = self.__decode_error_correction(data, redundant_bits)
-
-        data = self.__decrypt(data, encryptor)
+    ):
+        data = Message.__decode_error_correction(data, redundant_bits)
+        data = Message.__decrypt(data, encryptor)
 
         return data
 
-    def __decode_error_correction(self, data: bytes, redundant_bits: int):
+    @staticmethod
+    def __decode_error_correction(data: bytes, redundant_bits: int):
 
-        data = self.__correct_errors_hamming(data, redundant_bits)
+        if redundant_bits > 0:
+            data = Message.__correct_errors_hamming(data, redundant_bits)
 
         return data
 
@@ -89,7 +98,8 @@ class Message:
     @staticmethod
     def __encode_error_correction(data: bytes, redundant_bits: int) -> bytes:
 
-        data = HammingErrorCorrection.encode_hamming_error_correction(data, redundant_bits)
+        if redundant_bits > 0:
+            data = HammingErrorCorrection.encode_hamming_error_correction(data, redundant_bits)
 
         return data
 

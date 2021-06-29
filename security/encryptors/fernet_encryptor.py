@@ -2,6 +2,7 @@ import base64
 
 from cryptography.fernet import Fernet
 
+from security.enums.encryption_type import EncryptionType
 from security.hashing.generic_hash import GenericHash
 from security.encryptors.generic_encryptor import GenericEncryptor
 from security.hashing.none_hash import NoneHash
@@ -12,7 +13,7 @@ class FernetEncryptor(GenericEncryptor):
     # https://cryptography.io/en/latest/fernet/
 
     def __init__(self, hash_algo: GenericHash, decryption: bool):
-        super().__init__()
+        super().__init__(EncryptionType.FERNET)
 
         if type(hash_algo) == NoneHash:
             raise ValueError('Fernet encryption requires a hash (PBKDF2/SCRYPT)')

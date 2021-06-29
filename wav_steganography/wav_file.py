@@ -130,9 +130,8 @@ class WAVFile:
             data: bytes,
             least_significant_bits: int = 2,
             every_nth_byte: int = 1,
-            redundant_bits: int = 4,
-            error_correction: bool = False
-        ):
+            redundant_bits: int = 0,
+    ):
         """ Encode a message in the given WAVFile
 
         This is done by writing to every nth bytes some number of least significant bits.
@@ -140,24 +139,22 @@ class WAVFile:
         """
         assert least_significant_bits <= self.header["BitsPerSample"]
 
-        message = Message()
-
-        message.encode_message(
+        header_chunk, data_chunk = Message.encode_message(
             data,
             least_significant_bits,
             every_nth_byte,
             redundant_bits,
             self.__encryptor,
-            error_correction)
+        )
 
-        byte_index = 0
-        bits_required_for_data = len(message.data.data) * 8
-        bits_available = (len(self.data) - len(message.header.data) * 8) * least_significant_bits // every_nth_byte
+        bits_required_for_data = len(data_chunk.data) * 8
+        bits_available = (len(self.data) - len(header_chunk.data) * 8) * least_significant_bits // every_nth_byte
         if bits_available < bits_required_for_data:
             raise ValueError(
                 f"ERROR: File not large enough for the given message {bits_available} < {bits_required_for_data}!")
 
-        for chunk in [message.header, message.data]:
+        byte_index = 0
+        for chunk in [header_chunk, data_chunk]:
             nth = chunk.every_nth_byte
 
             binary_data = ''.join(map(lambda b: f"{b:08b}", chunk.data))  # e.g. "0010101011101100"
@@ -165,22 +162,21 @@ class WAVFile:
             binary_data_split_up = list(map(lambda b: int(b, 2), lsb_bits))  # e.g. [0, 2, ...]
             end_byte_index = len(binary_data_split_up) * nth + byte_index  # e.g. 32 on first iteration
 
-            self.data[byte_index:end_byte_index:nth] = [
-                self._set_last_n_bits(data_bits, message_bits, chunk.least_significant_bits)
-                for message_bits, data_bits in zip(binary_data_split_up, self.data[byte_index:end_byte_index:nth])
-            ]
+            self.data[byte_index:end_byte_index:nth] = self._set_last_n_bits_in_array(
+                self.data[byte_index:end_byte_index:nth],
+                binary_data_split_up,
+                chunk.least_significant_bits,
+            )
 
             byte_index = end_byte_index
 
-        decoded_message = self.decode(
-            redundant_bits=redundant_bits,
-            error_correction = error_correction)
+        decoded_message = self.decode()
 
         assert decoded_message == data,\
             f'Cannot decode encrypted message: "{decoded_message}" != "{data}"'
 
     @staticmethod
-    def _set_last_n_bits(data_bits: int, message_bits: int, n_bits_to_set: int) -> int:
+    def _set_last_n_bits_in_array(data_slice: np.ndarray, binary_data_split_up, n_bits_to_set: int):
         """ Set n bits in data_bits to 0, then set them equal to message_bits
 
         Say LSBs = 2, data_bits = 0b10111001, message_bits = 0b10, then:
@@ -197,7 +193,11 @@ class WAVFile:
 
         The LSBs bits have been set to message_bits after this operation.
         """
-        return data_bits ^ (data_bits & (2**n_bits_to_set - 1)) ^ message_bits
+        below_power_of_two = np.full_like(data_slice, 2**n_bits_to_set - 1)
+        flipped_last_n_bits = data_slice & below_power_of_two
+        data_slice_with_zeroed_n_last_bits = data_slice ^ flipped_last_n_bits
+        data_slice_with_message_bits_set = data_slice_with_zeroed_n_last_bits ^ binary_data_split_up
+        return data_slice_with_message_bits_set
 
     def _get_bytes(self, from_byte: int, to_byte: int, lsb_count: int, nth_byte: int) -> bytes:
         """ Return bytes by reading every lsb_count bits from every nth_byte from from_byte to to_byte """
@@ -218,15 +218,12 @@ class WAVFile:
 
         return message_bytes
 
-    def decode(
-            self,
-            redundant_bits: int = 4,
-            error_correction: bool = False) -> bytes:
+    def decode(self) -> bytes:
 
         message_bytes = self._get_message()
 
         message = Message()
 
-        decoded_message = message.decode_message(message_bytes, self.__encryptor, redundant_bits, error_correction)
+        decoded_message = message.decode_message(message_bytes)
 
         return decoded_message

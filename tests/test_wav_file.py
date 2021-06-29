@@ -75,11 +75,11 @@ def single_test_encoding_decoding_with_error_correction(audio_file, data, encryp
     file = WAVFile(audio_file, encryptor)
     encoded_file_path = get_file_path(audio_file.name)
 
-    file.encode(data, error_correction=True)
+    file.encode(data, redundant_bits=4)
     file.write(encoded_file_path, overwrite=True)
 
     encoded_file = WAVFile(encoded_file_path, NoneEncryptor())
-    decoded_data = encoded_file.decode(error_correction=True)
+    decoded_data = encoded_file.decode()
 
     return decoded_data
 
@@ -118,7 +118,7 @@ def test_multiple_encoding_with_error_correction_and_encryption():
             data = data_string.encode("UTF-8")
 
             file = WAVFile(audio_file, encryptor)
-            file.encode(data, error_correction=True)
+            file.encode(data, redundant_bits=4)
 
 
 def test_multiple_encoding_decoding_with_error_correction_and_oversized_data():
