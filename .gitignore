@@ -8,3 +8,4 @@ audio/encoded
 evaluation/eval_reports/*
 *.pem
 *.png
+wav_to_mp3_to_wav/figures
