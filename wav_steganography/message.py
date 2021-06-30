@@ -1,6 +1,7 @@
 import struct
 from typing import Union, Optional, Tuple
 
+from error_correction.reed_solomon import ReedSolomon
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.generic_encryptor import GenericEncryptor
 from security.encryptors.none_encryptor import NoneEncryptor
@@ -44,6 +45,7 @@ class Message:
         # Encrypt first, then add error correction in this order
         data = Message.__encrypt(data, encryptor)
         data = Message.__encode_error_correction(data, redundant_bits)
+        data = Message.__encode_rs_error_correction(data)
 
         header_data = struct.pack(
             Message.HEADER_FORMAT,
@@ -72,7 +74,8 @@ class Message:
     ):
         *_, redundant_bits, encryption_type, salt, nonce, data_size = Message.decode_header(header_bytes)
         encryptor = EncryptionProvider.get_encryptor(EncryptionType(encryption_type), decryption=True)
-        data = Message.__decode_error_correction(data_bytes, redundant_bits)
+        data = Message.__decode__rs_hamming_error_correction(data_bytes)
+        data = Message.__decode_error_correction(data, redundant_bits)
         data = Message.__decrypt(data, encryptor)
 
         return data
@@ -117,6 +120,20 @@ class Message:
     def __decode_hamming_error_correction(data: bytes, redundant_bits: int) -> bytes:
 
         data = HammingErrorCorrection.decode_hamming_error_correction(data, redundant_bits)
+
+        return data
+
+    @staticmethod
+    def __encode_rs_error_correction(data: bytes) -> bytes:
+
+        data = ReedSolomon.encode(data)
+
+        return data
+
+    @staticmethod
+    def __decode__rs_hamming_error_correction(data: bytes) -> bytes:
+
+        data = ReedSolomon.decode(data)
 
         return data
 
