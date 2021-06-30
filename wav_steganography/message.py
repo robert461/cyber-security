@@ -24,10 +24,11 @@ class Message:
     For the header, the values are defined below.
     """
     HEADER_FORMAT = "<BHHB16s16sI"
-    HEADER_BYTE_SIZE = struct.calcsize(HEADER_FORMAT)
-    HEADER_LSB_COUNT = 1
+    HEADER_LSB_COUNT = 8
     HEADER_EVERY_NTH_BYTE = 1
     HEADER_REDUNDANT_BITS = 0
+    assert HEADER_REDUNDANT_BITS % 8 == 0, "header must have full bytes as redundancy"
+    HEADER_BYTE_SIZE = struct.calcsize(HEADER_FORMAT) * (1 + HEADER_REDUNDANT_BITS // 8)
 
     @staticmethod
     def encode_message(
@@ -50,21 +51,26 @@ class Message:
             every_nth_byte,
             redundant_bits,
             encryptor.encryption_type.value,
-            b"0" * 16,  # salt TODO: encryptor.get_salt()
-            b"0" * 16,  # nonce TODO: encryptor.get_nonce()
+            b"0" * 16,  # salt TODO: encryptor.salt
+            b"0" * 16,  # nonce TODO: encryptor.nonce
             len(data),
         )
+        header_data = Message.__encode_error_correction(header_data, Message.HEADER_REDUNDANT_BITS)
         header_chunk = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
         data_chunk = DataChunk(data, least_significant_bits, every_nth_byte)
         return header_chunk, data_chunk
+
+    @staticmethod
+    def decode_header(header_bytes):
+        header_bytes = Message.__decode_error_correction(header_bytes, Message.HEADER_REDUNDANT_BITS)
+        return struct.unpack(Message.HEADER_FORMAT, header_bytes)
 
     @staticmethod
     def decode_message(
             header_bytes: bytes,
             data_bytes: bytes,
     ):
-        *_, redundant_bits, encryption_type, salt, nonce, data_size = \
-            struct.unpack(Message.HEADER_FORMAT, header_bytes)
+        *_, redundant_bits, encryption_type, salt, nonce, data_size = Message.decode_header(header_bytes)
         encryptor = EncryptionProvider.get_encryptor(EncryptionType(encryption_type), decryption=True)
         data = Message.__decode_error_correction(data_bytes, redundant_bits)
         data = Message.__decrypt(data, encryptor)

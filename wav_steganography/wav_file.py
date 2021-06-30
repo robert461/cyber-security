@@ -208,14 +208,13 @@ class WAVFile:
 
     def _get_message(self):
         """ Decode message from this WAVFile """
-        header_bit_count = Message.HEADER_BYTE_SIZE * 8
-        header_bytes = self._get_bytes(0, header_bit_count, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
+        header_end_byte = Message.HEADER_BYTE_SIZE * 8 * Message.HEADER_EVERY_NTH_BYTE // Message.HEADER_LSB_COUNT
+        header_bytes = self._get_bytes(0, header_end_byte, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
 
-        least_significant_bits, every_nth_byte, *_, data_size = \
-            struct.unpack(Message.HEADER_FORMAT, header_bytes)
+        least_significant_bits, every_nth_byte, *_, data_size = Message.decode_header(header_bytes)
 
-        message_end_bit = every_nth_byte * data_size * 8 // least_significant_bits + header_bit_count
-        message_bytes = self._get_bytes(header_bit_count, message_end_bit, least_significant_bits, every_nth_byte)
+        message_end_byte = data_size * 8 * every_nth_byte // least_significant_bits + header_end_byte
+        message_bytes = self._get_bytes(header_end_byte, message_end_byte, least_significant_bits, every_nth_byte)
 
         return header_bytes, message_bytes
 
