@@ -45,7 +45,6 @@ class Message:
         # Encrypt first, then add error correction in this order
         data = Message.__encrypt(data, encryptor)
         data = Message.__encode_error_correction(data, redundant_bits)
-        data = Message.__encode_rs_error_correction(data)
 
         header_data = struct.pack(
             Message.HEADER_FORMAT,
@@ -74,8 +73,7 @@ class Message:
     ):
         *_, redundant_bits, encryption_type, salt, nonce, data_size = Message.decode_header(header_bytes)
         encryptor = EncryptionProvider.get_encryptor(EncryptionType(encryption_type), decryption=True)
-        data = Message.__decode__rs_hamming_error_correction(data_bytes)
-        data = Message.__decode_error_correction(data, redundant_bits)
+        data = Message.__decode_error_correction(data_bytes, redundant_bits)
         data = Message.__decrypt(data, encryptor)
 
         return data
@@ -83,8 +81,10 @@ class Message:
     @staticmethod
     def __decode_error_correction(data: bytes, redundant_bits: int):
 
-        if redundant_bits > 0:
-            data = Message.__correct_errors_hamming(data, redundant_bits)
+        # if redundant_bits > 0:
+        #    data = Message.__correct_errors_hamming(data, redundant_bits)
+
+        data = Message.__decode_rs_hamming_error_correction(data)
 
         return data
 
@@ -111,8 +111,10 @@ class Message:
     @staticmethod
     def __encode_error_correction(data: bytes, redundant_bits: int) -> bytes:
 
-        if redundant_bits > 0:
-            data = HammingErrorCorrection.encode_hamming_error_correction(data, redundant_bits)
+        # if redundant_bits > 0:
+        #    data = HammingErrorCorrection.encode_hamming_error_correction(data, redundant_bits)
+
+        data = Message.__encode_rs_error_correction(data)
 
         return data
 
@@ -131,7 +133,7 @@ class Message:
         return data
 
     @staticmethod
-    def __decode__rs_hamming_error_correction(data: bytes) -> bytes:
+    def __decode_rs_hamming_error_correction(data: bytes) -> bytes:
 
         data = ReedSolomon.decode(data)
 
