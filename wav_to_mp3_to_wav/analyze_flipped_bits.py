@@ -40,8 +40,13 @@ def comparison_pre_and_after_mp3_conversion(file_path, bitrate="312k", print_=Fa
 
         total = len(pre_data)
         percentages = []
+        if len(pre_data) != len(after_data):
+            print(f"Shape mismatch pre-conversion: {len(pre_data)} with post-conversion: {len(after_data)}, skipping!")
+            return None
+        print(f"Average difference (bitrate={bitrate}): {np.average(np.abs(pre_data - after_data)):.1f}")
         for bit in range(16):
             power = 1 << bit
+            # print(f"Ones for bit {bit+1}: {np.sum(pre_data & power != 0)} / {total}")
             correct = np.sum(pre_data & power == after_data & power)
             percent = correct / total
             percentages.append(percent)
@@ -52,41 +57,40 @@ def comparison_pre_and_after_mp3_conversion(file_path, bitrate="312k", print_=Fa
 
 def plot_bit_percentages_for_file(curr_file_path: Path, show=False):
     if curr_file_path:
+        figure_path = Path(__file__).parent / "figures" / curr_file_path.with_suffix(".png").name
+        print(f"Saving figure {figure_path}")
         possible_bitrates = ["64k", "92k", "128k", "256k", "312k"]
         data = {}
         for bitrate in possible_bitrates:
             percentages = comparison_pre_and_after_mp3_conversion(curr_file_path, bitrate=bitrate)
+            if percentages is None:
+                return
             percentages.reverse()
             data[bitrate] = percentages
         dataframe = pd.DataFrame.from_dict(data, orient="index", columns=range(16, 0, -1))
-        # dataframe = (dataframe - 0.5) * 2
-        # dataframe = dataframe.clip(0, 1)
-        # dataframe = np.clip(dataframe, 0, 1)
-        print(dataframe)
-        # dataframe.plot(kind="scatter")
         matplotlib.rcParams["font.size"] = "5"
         plt.imshow(dataframe, vmin=0.5, vmax=1)
         for (j, i), label in np.ndenumerate(dataframe.round(2)):
             plt.text(i, j, label, ha='center', va='center')
             plt.text(i, j, label, ha='center', va='center')
-        plt.xticks(*list(zip(*enumerate(dataframe.columns))))
+        plt.xticks(*zip(*enumerate(dataframe.columns)))
         plt.xlabel("bit")
-        plt.yticks(*list(zip(*enumerate(dataframe.index.values))))
+        plt.yticks(*zip(*enumerate(dataframe.index.values)))
         plt.ylabel("MP3 bitrate")
-        plt.title(f"Comparison of Equal Bits in WAv -> MP3 -> WAV Conversion for File {curr_file_path.name}")
+        plt.title(f"Comparison of Equal Bits in WAV -> MP3 -> WAV Conversion for File '{curr_file_path.name}'")
         # f"The numbers show the percentage of equal bits pre/post comparison. "
         # f"1.0 means all bits are the same, 0.5 means that it is essentially random."
-        figure_path = Path(__file__).parent / "figures" / curr_file_path.with_suffix(".png").name
-        print(f"Saving figure {figure_path}")
+        print(dataframe)
+        plt.tight_layout()
         figure_path.parent.mkdir(exist_ok=True)
-        plt.savefig(figure_path, dpi=300)
+        plt.savefig(figure_path, dpi=300, pad_inches=0)
         if show:
             plt.show()
         plt.close()
 
 
 def main():
-    # curr_file_substring = "jetengine1"
+    # plot_bit_percentages_for_file(find_matching_audio_file("zoo"))
     for path in all_audio_files.values():
         plot_bit_percentages_for_file(path)
 
