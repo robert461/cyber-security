@@ -22,7 +22,7 @@ def get_random_string(position_of_element: int) -> str:
 
 def get_file_path(filename):
     encoded_dir_path = audio_path / "encoded"
-    encoded_dir_path.mkdir(exist_ok = True)
+    encoded_dir_path.mkdir(exist_ok=True)
     encoded_file_path = encoded_dir_path / filename
 
     return encoded_file_path
@@ -75,7 +75,7 @@ def single_test_encoding_decoding_with_error_correction(audio_file, data, encryp
     file = WAVFile(audio_file, encryptor)
     encoded_file_path = get_file_path(audio_file.name)
 
-    file.encode(data, redundant_bits=4)
+    file.encode(data, redundant_bits=9)
     file.write(encoded_file_path, overwrite=True)
 
     encoded_file = WAVFile(encoded_file_path, NoneEncryptor())
@@ -118,7 +118,7 @@ def test_multiple_encoding_with_error_correction_and_encryption():
             data = data_string.encode("UTF-8")
 
             file = WAVFile(audio_file, encryptor)
-            file.encode(data, redundant_bits=4)
+            file.encode(data, redundant_bits=8)
 
 
 def test_multiple_encoding_decoding_with_error_correction_and_oversized_data():

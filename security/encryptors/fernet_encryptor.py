@@ -29,6 +29,12 @@ class FernetEncryptor(GenericEncryptor):
 
         self.__fernet = Fernet(key_base64)
 
+    @property
+    def salt(self):
+        if hasattr(self.__hash_algo, "salt"):
+            return self.__hash_algo.salt
+        return None
+
     def encrypt(self, data: bytes) -> bytes:
         encrypted_data = self.__fernet.encrypt(data)
 

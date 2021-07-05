@@ -3,9 +3,11 @@ from typing import Union, Optional, Tuple
 
 from error_correction.reed_solomon import ReedSolomon
 from security.encryption_provider import EncryptionProvider
+from security.encryptors.aes_encryptor import AesEncryptor
 from security.encryptors.generic_encryptor import GenericEncryptor
 from security.encryptors.none_encryptor import NoneEncryptor
 from security.enums.encryption_type import EncryptionType
+from security.hashing.salted_hash import SaltedHash
 from wav_steganography.data_chunk import DataChunk
 from error_correction.hamming_error_correction import HammingErrorCorrection
 
@@ -46,14 +48,19 @@ class Message:
         data = Message.__encrypt(data, encryptor)
         data = Message.__encode_error_correction(data, redundant_bits)
 
+        # Get salt/nonce values if the given encryptor has these values, otherwise use all 0 default salt/nonce
+        salt = getattr(encryptor, "salt", b"0" * SaltedHash.SALT_LENGTH)
+        nonce = getattr(encryptor, "nonce", b"0" * AesEncryptor.NONCE_LENGTH)
+
+        # Pack header data according to structure described in message
         header_data = struct.pack(
             Message.HEADER_FORMAT,
             least_significant_bits,
             every_nth_byte,
             redundant_bits,
             encryptor.encryption_type.value,
-            b"0" * 16,  # salt TODO: encryptor.salt
-            b"0" * 16,  # nonce TODO: encryptor.nonce
+            salt,
+            nonce,
             len(data),
         )
         header_data = Message.__encode_error_correction(header_data, Message.HEADER_REDUNDANT_BITS)
