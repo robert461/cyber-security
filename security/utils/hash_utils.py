@@ -34,5 +34,4 @@ class HashUtils:
 
     @staticmethod
     def get_random_string(position_of_element: int) -> str:
-        return ''.join(random.choice(string.ascii_letters) for _ in
-                       range(random.randint(position_of_element, position_of_element)))
+        return ''.join(random.choices(string.ascii_letters, k=position_of_element))
