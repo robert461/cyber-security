@@ -12,14 +12,24 @@ class ReedSolomon:
     """
 
     @staticmethod
+    def _get_ecc_byte_count_per_chunk(redundant_bits):
+        redundant_bytes = redundant_bits // 8
+        reed_solomon_chunk_size = 255
+        if not (1 <= redundant_bytes < reed_solomon_chunk_size):
+            raise ValueError(f"Too many redundant bytes: {redundant_bytes} must be less than {reed_solomon_chunk_size}!"
+                             f"I.e. redundant_bits={redundant_bits} must be less than {reed_solomon_chunk_size * 8}!")
+        data_bytes = reed_solomon_chunk_size // (redundant_bytes + 1)
+        return reed_solomon_chunk_size - data_bytes
+
+    @staticmethod
     def encode(data: bytes, redundant_bits: int) -> bytes:
 
         if redundant_bits == 0:
             return data
 
-        redundant_bytes = len(data) * redundant_bits // 8
+        ecc_byte_count_per_chunk = ReedSolomon._get_ecc_byte_count_per_chunk(redundant_bits)
 
-        rsc = RSCodec(redundant_bytes)
+        rsc = RSCodec(ecc_byte_count_per_chunk)
         encoded_data = rsc.encode(data)
 
         return bytes(encoded_data)
@@ -30,16 +40,11 @@ class ReedSolomon:
         if redundant_bits == 0:
             return data
 
-        # E.g. if 4 bytes of data="test" encoded with redundant_bits=16, then data is 12 bytes long.
-        # To get 8 total redundant bytes:
-        #       divide 12 by (redundant_bytes+1) = (2+1) = 3, to get 4, this is the original message size in bytes
-        #       now subtract this from the the encoded message length: 12 - 4 = 8
-        redundant_bytes = redundant_bits // 8
-        original_message_bytes = len(data) // (redundant_bytes + 1)
-        redundant_bytes_total = len(data) - original_message_bytes
+        ecc_byte_count_per_chunk = ReedSolomon._get_ecc_byte_count_per_chunk(redundant_bits)
 
-        rsc = RSCodec(redundant_bytes_total)
+        rsc = RSCodec(ecc_byte_count_per_chunk)
 
         decoded_msg = rsc.decode(data)[0]
 
-        return decoded_msg
+        # important to return bytes, as rsc returns a bytearray, which causes errors in various encryptors
+        return bytes(decoded_msg)

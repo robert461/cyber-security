@@ -41,9 +41,6 @@ class SaltedHash(GenericHash):
 
     def get_key_with_existing_credentials(self) -> bytes:
 
-        # if self._salt is None:
-        #    self._salt = HashUtils.get_salt_from_user()
-
         password_bytes = HashUtils.get_password_from_user()
 
         key = self._derive_key(password_bytes)

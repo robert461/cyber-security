@@ -1,4 +1,5 @@
 import struct
+from functools import cached_property
 from typing import Union, Optional, Tuple
 
 from error_correction.reed_solomon import ReedSolomon
@@ -32,7 +33,11 @@ class Message:
     HEADER_REDUNDANT_BITS = 40
     assert HEADER_REDUNDANT_BITS % 8 == 0, "header must have full bytes as redundancy"
     assert 0 <= HEADER_REDUNDANT_BITS <= 40, "header redundant bits not in [0, 40]"
-    HEADER_BYTE_SIZE = struct.calcsize(HEADER_FORMAT) * (1 + HEADER_REDUNDANT_BITS // 8)
+
+    @staticmethod
+    def header_byte_size() -> int:
+        return len(Message.__encode_error_correction(b'a' * struct.calcsize(Message.HEADER_FORMAT),
+                                                     Message.HEADER_REDUNDANT_BITS))
 
     @staticmethod
     def encode_message(
@@ -129,9 +134,10 @@ class Message:
         # if redundant_bits > 0:
         #    data = HammingErrorCorrection.encode_hamming_error_correction(data, redundant_bits)
 
-        data = Message.__encode_rs_error_correction(data, redundant_bits)
+        data_error_corrected = Message.__encode_rs_error_correction(data, redundant_bits)
+        assert len(data_error_corrected) != 0, f"data is empty after error correction: {data_error_corrected}"
 
-        return data
+        return data_error_corrected
 
     @staticmethod
     def __decode_hamming_error_correction(data: bytes, redundant_bits: int) -> bytes:

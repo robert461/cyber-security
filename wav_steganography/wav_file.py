@@ -130,7 +130,7 @@ class WAVFile:
             least_significant_bits: int = 2,
             every_nth_byte: int = 1,
             redundant_bits: int = 0,
-            encryptor: GenericEncryptor = NoneEncryptor,
+            encryptor: GenericEncryptor = NoneEncryptor(),
     ):
         """ Encode a message in the given WAVFile
 
@@ -207,7 +207,7 @@ class WAVFile:
 
     def _get_message(self):
         """ Decode message from this WAVFile """
-        header_end_byte = Message.HEADER_BYTE_SIZE * 8 * Message.HEADER_EVERY_NTH_BYTE // Message.HEADER_LSB_COUNT
+        header_end_byte = Message.header_byte_size() * 8 * Message.HEADER_EVERY_NTH_BYTE // Message.HEADER_LSB_COUNT
         header_bytes = self._get_bytes(0, header_end_byte, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
 
         least_significant_bits, every_nth_byte, *_, data_size = Message.decode_header(header_bytes)
