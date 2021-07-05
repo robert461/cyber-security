@@ -1,14 +1,14 @@
 from pathlib import Path
 
-from evaluation.eval_report_analysis.analyzer import EvalReportAnalyzer
-from evaluation.eval_report_analysis.csv_reader import CsvReader
-from evaluation.eval_report_analysis.visualizer import EvalReportVisualizer
+from evaluation.report_analysis.eval_report_analyzer import EvalReportAnalyzer
+from evaluation.report_analysis.csv_reader import CsvReader
+from evaluation.report_analysis.visualizer import EvalReportVisualizer
 
 
 def main():
 
-    eval_reports_path = Path('../eval_reports')
-    graphs_path = './graphs'
+    eval_reports_path = Path('eval_reports')
+    graphs_path = 'report_graphs'
 
     Path(graphs_path).mkdir(parents=True, exist_ok=True)
 

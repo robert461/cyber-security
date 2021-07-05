@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from evaluation.eval_report_analysis.eval_report_choice import EvalReportChoice
+from evaluation.report_analysis.eval_report_choice import EvalReportChoice
 
 
 class EvalReportAnalyzer:
