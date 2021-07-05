@@ -53,7 +53,7 @@ class WAVFile:
         ("Subchunk2Size", '<i', 4, None),
     ]
 
-    def __init__(self, filename: Union[Path, str], encryptor: GenericEncryptor = NoneEncryptor):
+    def __init__(self, filename: Union[Path, str]):
         """ Parse WAV file given a path to audio file """
         self.header = h = OrderedDict()
         with open(filename, 'rb') as wav_file:
@@ -76,8 +76,6 @@ class WAVFile:
 
             # Parse the actual data
             self.data = np.array(struct.unpack(self._get_data_format(), wav_file.read(h['Subchunk2Size'])))
-
-        self.__encryptor = encryptor
 
     def _data_as_channel_data_frame(self, data_arr: np.ndarray) -> pd.DataFrame:
         return pd.DataFrame(data={
@@ -132,6 +130,7 @@ class WAVFile:
             least_significant_bits: int = 2,
             every_nth_byte: int = 1,
             redundant_bits: int = 0,
+            encryptor: GenericEncryptor = NoneEncryptor,
     ):
         """ Encode a message in the given WAVFile
 
@@ -145,7 +144,7 @@ class WAVFile:
             least_significant_bits,
             every_nth_byte,
             redundant_bits,
-            self.__encryptor,
+            encryptor,
         )
 
         bits_required_for_data = len(data_chunk.data) * 8
@@ -171,7 +170,7 @@ class WAVFile:
 
             byte_index = end_byte_index
 
-        decoded_message = self.decode()
+        decoded_message = self.decode(encryptor=encryptor)
 
         assert decoded_message == data,\
             f'Cannot decode encrypted message: "{decoded_message}" != "{data}"'
@@ -218,10 +217,15 @@ class WAVFile:
 
         return header_bytes, message_bytes
 
-    def decode(self) -> bytes:
+    def decode(self, encryptor: Optional[GenericEncryptor] = None) -> bytes:
+        """Decode message, getting all parameters from internal header
+
+        Encryptor is optional, can be supplied to avoid asking for password twice when verifying.
+        If Encryptor is not supplied, then it will extract the used encryptor from the header in the message.
+        """
 
         header_bytes, data_bytes = self._get_message()
 
-        decoded_message = Message.decode_message(header_bytes, data_bytes)
+        decoded_message = Message.decode_message(header_bytes, data_bytes, encryptor)
 
         return decoded_message

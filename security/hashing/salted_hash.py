@@ -23,7 +23,6 @@ class SaltedHash(GenericHash):
         self._salt = salt
         if self._salt is None:
             self._salt = os.urandom(SaltedHash.SALT_LENGTH)
-        print(f'salt: {self._salt.hex()}')
 
         assert len(self._salt) == SaltedHash.SALT_LENGTH, \
             f"Salt length unexpected {len(self._salt)} != {SaltedHash.SALT_LENGTH}!"

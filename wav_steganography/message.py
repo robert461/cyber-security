@@ -26,11 +26,12 @@ class Message:
         * The length of the data in bytes (excluding the header)
     For the header, the values are defined below.
     """
-    HEADER_FORMAT = "<BHHB16s16sI"
+    HEADER_FORMAT = f"<BHHB{SaltedHash.SALT_LENGTH}s{AesEncryptor.NONCE_LENGTH}sI"
     HEADER_LSB_COUNT = 8
     HEADER_EVERY_NTH_BYTE = 1
-    HEADER_REDUNDANT_BITS = 0
+    HEADER_REDUNDANT_BITS = 40
     assert HEADER_REDUNDANT_BITS % 8 == 0, "header must have full bytes as redundancy"
+    assert 0 <= HEADER_REDUNDANT_BITS <= 40, "header redundant bits not in [0, 40]"
     HEADER_BYTE_SIZE = struct.calcsize(HEADER_FORMAT) * (1 + HEADER_REDUNDANT_BITS // 8)
 
     @staticmethod
@@ -77,9 +78,16 @@ class Message:
     def decode_message(
             header_bytes: bytes,
             data_bytes: bytes,
+            encryptor: Optional[GenericEncryptor] = None,
     ):
         *_, redundant_bits, encryption_type, salt, nonce, data_size = Message.decode_header(header_bytes)
-        encryptor = EncryptionProvider.get_encryptor(EncryptionType(encryption_type), decryption=True)
+        if encryptor is None:
+            encryptor = EncryptionProvider.get_encryptor(
+                EncryptionType(encryption_type),
+                decryption=True,
+                salt=salt,
+                nonce=nonce,
+            )
         data = Message.__decode_error_correction(data_bytes, redundant_bits)
         data = Message.__decrypt(data, encryptor)
 

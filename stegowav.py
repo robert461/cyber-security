@@ -48,9 +48,9 @@ def handle_args(args):
     encryption_type = EncryptionType(args.encryption_type)
     hash_type = HashType(args.hash_type)
 
-    encryptor = EncryptionProvider.get_encryptor(encryption_type, hash_type, decryption=args.decode)
+    wav_file = WAVFile(args.input)
 
-    wav_file = WAVFile(args.input, encryptor)
+    encryptor = EncryptionProvider.get_encryptor(encryption_type, hash_type, decryption=args.decode)
 
     if args.encode:
         wav_file.encode(
@@ -58,10 +58,11 @@ def handle_args(args):
             least_significant_bits=args.lsb,
             every_nth_byte=args.use_nth_byte,
             redundant_bits=args.redundant_bits,
+            encryptor=encryptor,
         )
 
     if args.decode:
-        decoded_message = wav_file.decode()
+        decoded_message = wav_file.decode(encryptor=encryptor)
 
         decoded_string = decoded_message.decode("UTF-8")
 

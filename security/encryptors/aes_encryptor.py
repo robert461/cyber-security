@@ -22,18 +22,18 @@ class AesEncryptor(GenericEncryptor):
 
         self.__hash_algo = hash_algo
 
-        if decryption:
-            key = self.__hash_algo.get_key_with_existing_credentials()
+        if nonce is None:
+            nonce = os.urandom(AesEncryptor.NONCE_LENGTH)
 
-            if nonce is None:
-                nonce_string = input('Please enter the nonce for AES decryption: ')
-                nonce = bytes.fromhex(nonce_string)
+        #if decryption:
+        #    key = self.__hash_algo.get_key_with_existing_credentials()
 
-        else:
-            key = self.__hash_algo.get_key()
+        #    if nonce is None:
+        #        nonce_string = input('Please enter the nonce for AES decryption: ')
+        #        nonce = bytes.fromhex(nonce_string)
 
-            if nonce is None:
-                nonce = os.urandom(AesEncryptor.NONCE_LENGTH)
+        #else:
+        key = self.__hash_algo.get_key()
 
         self.__nonce = nonce
 
@@ -51,10 +51,7 @@ class AesEncryptor(GenericEncryptor):
 
     def encrypt(self, data: bytes) -> bytes:
 
-        nonce = os.urandom(AesEncryptor.NONCE_LENGTH)
-        print(f'nonce: {nonce.hex()}')
-
-        self.__cipher.mode = modes.CTR(nonce)
+        self.__cipher.mode = modes.CTR(self.__nonce)
 
         encryptor = self.__cipher.encryptor()
 
@@ -67,7 +64,5 @@ class AesEncryptor(GenericEncryptor):
         decryptor = self.__cipher.decryptor()
 
         decrypted_data = decryptor.update(data) + decryptor.finalize()
-
-        a = decrypted_data.hex()
 
         return decrypted_data
