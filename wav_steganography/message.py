@@ -84,7 +84,7 @@ class Message:
         # if redundant_bits > 0:
         #    data = Message.__correct_errors_hamming(data, redundant_bits)
 
-        data = Message.__decode_rs_hamming_error_correction(data)
+        data = Message.__decode_rs_hamming_error_correction(data, redundant_bits)
 
         return data
 
@@ -114,7 +114,7 @@ class Message:
         # if redundant_bits > 0:
         #    data = HammingErrorCorrection.encode_hamming_error_correction(data, redundant_bits)
 
-        data = Message.__encode_rs_error_correction(data)
+        data = Message.__encode_rs_error_correction(data, redundant_bits)
 
         return data
 
@@ -126,16 +126,16 @@ class Message:
         return data
 
     @staticmethod
-    def __encode_rs_error_correction(data: bytes) -> bytes:
+    def __encode_rs_error_correction(data: bytes, redundant_bits) -> bytes:
 
-        data = ReedSolomon.encode(data)
+        data = ReedSolomon.encode(data, redundant_bits)
 
         return data
 
     @staticmethod
-    def __decode_rs_hamming_error_correction(data: bytes) -> bytes:
+    def __decode_rs_hamming_error_correction(data: bytes, redundant_bits) -> bytes:
 
-        data = ReedSolomon.decode(data)
+        data = ReedSolomon.decode(data, redundant_bits)
 
         return data
 

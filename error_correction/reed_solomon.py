@@ -5,23 +5,28 @@ from reedsolo import RSCodec
 class ReedSolomon:
 
     @staticmethod
-    def encode(data: bytes) -> bytes:
+    def encode(data: bytes, redundant_bits: int) -> bytes:
 
-        rsc = RSCodec(10)  # 10 ecc symbols
+        if redundant_bits == 0:
+            return data
 
+        redundant_bytes = len(data) * redundant_bits // 8
+
+        rsc = RSCodec(redundant_bytes)
         encoded_data = rsc.encode(data)
 
-        print("Encoded with Reed Solomon")
-
-        return encoded_data
+        return bytes(encoded_data)
 
     @staticmethod
-    def decode(data: bytes) -> bytes:
+    def decode(data: bytes, redundant_bits: int) -> bytes:
 
-        rsc = RSCodec(10)  # 10 ecc symbols
+        if redundant_bits == 0:
+            return data
 
-        decoded_msg, decoded_msgecc, errata_pos = rsc.decode(data)
+        redundant_bytes = len(data) // (redundant_bits // 8 + 1)
 
-        print("Decoded with Reed Solomon")
+        rsc = RSCodec(redundant_bytes)
+
+        decoded_msg = rsc.decode(data)[0]
 
         return decoded_msg
