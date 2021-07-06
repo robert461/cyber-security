@@ -1,66 +1,26 @@
-import os
-from typing import Optional
-
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
-from security.hashing.generic_hash import GenericHash
-from security.utils.hash_utils import HashUtils
+from security.enums.hash_type import HashType
+from security.hashing.salted_hash import SaltedHash
 
 
-class ScryptHash(GenericHash):
+class ScryptHash(SaltedHash):
 
     # https://cryptography.io/en/latest/hazmat/primitives/key-derivation-functions/#scrypt
+    HASH_TYPE = HashType.SCRYPT
 
-    def __init__(self, is_test: Optional[bool] = False):
-        super().__init__()
+    # defaults for this specific hash
+    HASH_LENGTH = 32
+    COST_PARAMETER = 2 ** 14
+    BLOCK_SIZE = 8
+    PARALLELIZATION = 1
 
-        # defaults
-        self.__hash_length = 32
-        self.__cost_parameter = 2 ** 14
-        self.__block_size = 8
-        self.__parallelization = 1
-
-        self.__salt_length = 16
-
-        self.__is_test = is_test
-
-    def get_key(self) -> bytes:
-
-        salt = os.urandom(self.__salt_length)
-        print(f'salt: {salt.hex()}')
-
-        password_bytes = HashUtils.get_password(self.__is_test)
-
-        key = self.__derive_key(password_bytes, salt)
-
-        return key
-
-    def get_key_with_existing_credentials(self) -> bytes:
-
-        salt = HashUtils.get_salt_from_user()
-
-        password_bytes = HashUtils.get_password_from_user()
-
-        key = self.__derive_key(password_bytes, salt)
-
-        return key
-
-    def __derive_key(self, password_bytes: bytes, salt: bytes) -> bytes:
-        kdf = self.__get_kdf_instance(salt)
-        key = kdf.derive(password_bytes)
-
-        kdf = self.__get_kdf_instance(salt)
-        kdf.verify(password_bytes, key)
-
-        return key
-
-    def __get_kdf_instance(self, salt):
+    def _get_kdf_instance(self):
         kdf = Scrypt(
-            salt=salt,
-            length=self.__hash_length,
-            n=self.__cost_parameter,
-            r=self.__block_size,
-            p=self.__parallelization,
+            salt=self._salt,
+            length=ScryptHash.HASH_LENGTH,
+            n=ScryptHash.COST_PARAMETER,
+            r=ScryptHash.BLOCK_SIZE,
+            p=ScryptHash.PARALLELIZATION,
         )
-
         return kdf

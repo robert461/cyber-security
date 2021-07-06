@@ -9,6 +9,7 @@ import pandas as pd
 
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.generic_encryptor import GenericEncryptor
+from security.encryptors.none_encryptor import NoneEncryptor
 from security.enums.encryption_type import EncryptionType
 from security.enums.hash_type import HashType
 from wav_steganography.message import Message
@@ -52,7 +53,7 @@ class WAVFile:
         ("Subchunk2Size", '<i', 4, None),
     ]
 
-    def __init__(self, filename: Union[Path, str], encryptor: GenericEncryptor):
+    def __init__(self, filename: Union[Path, str]):
         """ Parse WAV file given a path to audio file """
         self.header = h = OrderedDict()
         with open(filename, 'rb') as wav_file:
@@ -75,8 +76,6 @@ class WAVFile:
 
             # Parse the actual data
             self.data = np.array(struct.unpack(self._get_data_format(), wav_file.read(h['Subchunk2Size'])))
-
-        self.__encryptor = encryptor
 
     def _data_as_channel_data_frame(self, data_arr: np.ndarray) -> pd.DataFrame:
         return pd.DataFrame(data={
@@ -130,9 +129,9 @@ class WAVFile:
             data: bytes,
             least_significant_bits: int = 2,
             every_nth_byte: int = 1,
-            redundant_bits: int = 4,
-            error_correction: bool = False
-        ):
+            redundant_bits: int = 0,
+            encryptor: GenericEncryptor = NoneEncryptor(),
+    ):
         """ Encode a message in the given WAVFile
 
         This is done by writing to every nth bytes some number of least significant bits.
@@ -140,24 +139,26 @@ class WAVFile:
         """
         assert least_significant_bits <= self.header["BitsPerSample"]
 
-        message = Message()
-
-        message.encode_message(
+        header_chunk, data_chunk = Message.encode_message(
             data,
             least_significant_bits,
             every_nth_byte,
             redundant_bits,
-            self.__encryptor,
-            error_correction)
+            encryptor,
+        )
+
+        amplitudes_available = len(self.data) - header_chunk.amplitudes_required
+        if amplitudes_available < data_chunk.amplitudes_required:
+            raise ValueError(
+                f"ERROR: File not large enough for the given message! "
+                f"Required amplitudes: header = {header_chunk.amplitudes_required}, "
+                f"data = {data_chunk.amplitudes_required}.\n\tAmplitudes available in total: {len(self.data)}. "
+                f"After encoding header not enough amplitudes left: "
+                f"{amplitudes_available} < {data_chunk.amplitudes_required}."
+            )
 
         byte_index = 0
-        bits_required_for_data = len(message.data.data) * 8
-        bits_available = (len(self.data) - len(message.header.data) * 8) * least_significant_bits // every_nth_byte
-        if bits_available < bits_required_for_data:
-            raise ValueError(
-                f"ERROR: File not large enough for the given message {bits_available} < {bits_required_for_data}!")
-
-        for chunk in [message.header, message.data]:
+        for chunk in [header_chunk, data_chunk]:
             nth = chunk.every_nth_byte
 
             binary_data = ''.join(map(lambda b: f"{b:08b}", chunk.data))  # e.g. "0010101011101100"
@@ -165,22 +166,21 @@ class WAVFile:
             binary_data_split_up = list(map(lambda b: int(b, 2), lsb_bits))  # e.g. [0, 2, ...]
             end_byte_index = len(binary_data_split_up) * nth + byte_index  # e.g. 32 on first iteration
 
-            self.data[byte_index:end_byte_index:nth] = [
-                self._set_last_n_bits(data_bits, message_bits, chunk.least_significant_bits)
-                for message_bits, data_bits in zip(binary_data_split_up, self.data[byte_index:end_byte_index:nth])
-            ]
+            self.data[byte_index:end_byte_index:nth] = self._set_last_n_bits_in_array(
+                self.data[byte_index:end_byte_index:nth],
+                binary_data_split_up,
+                chunk.least_significant_bits,
+            )
 
             byte_index = end_byte_index
 
-        decoded_message = self.decode(
-            redundant_bits=redundant_bits,
-            error_correction = error_correction)
+        decoded_message = self.decode(encryptor=encryptor)
 
         assert decoded_message == data,\
             f'Cannot decode encrypted message: "{decoded_message}" != "{data}"'
 
     @staticmethod
-    def _set_last_n_bits(data_bits: int, message_bits: int, n_bits_to_set: int) -> int:
+    def _set_last_n_bits_in_array(data_slice: np.ndarray, binary_data_split_up, n_bits_to_set: int):
         """ Set n bits in data_bits to 0, then set them equal to message_bits
 
         Say LSBs = 2, data_bits = 0b10111001, message_bits = 0b10, then:
@@ -197,7 +197,11 @@ class WAVFile:
 
         The LSBs bits have been set to message_bits after this operation.
         """
-        return data_bits ^ (data_bits & (2**n_bits_to_set - 1)) ^ message_bits
+        below_power_of_two = np.full_like(data_slice, 2**n_bits_to_set - 1)
+        flipped_last_n_bits = data_slice & below_power_of_two
+        data_slice_with_zeroed_n_last_bits = data_slice ^ flipped_last_n_bits
+        data_slice_with_message_bits_set = data_slice_with_zeroed_n_last_bits ^ binary_data_split_up
+        return data_slice_with_message_bits_set
 
     def _get_bytes(self, from_byte: int, to_byte: int, lsb_count: int, nth_byte: int) -> bytes:
         """ Return bytes by reading every lsb_count bits from every nth_byte from from_byte to to_byte """
@@ -207,26 +211,25 @@ class WAVFile:
 
     def _get_message(self):
         """ Decode message from this WAVFile """
-        header_bit_count = Message.HEADER_BYTE_SIZE * 8
-        header_bytes = self._get_bytes(0, header_bit_count, 1, 1)
+        header_end_byte = Message.header_byte_size() * 8 * Message.HEADER_EVERY_NTH_BYTE // Message.HEADER_LSB_COUNT
+        header_bytes = self._get_bytes(0, header_end_byte, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
 
-        least_significant_bits, every_nth_byte, data_size = \
-            struct.unpack(Message.HEADER_FORMAT, header_bytes)
+        least_significant_bits, every_nth_byte, *_, data_size = Message.decode_header(header_bytes)
 
-        message_end_bit = every_nth_byte * data_size * 8 // least_significant_bits + header_bit_count
-        message_bytes = self._get_bytes(header_bit_count, message_end_bit, least_significant_bits, every_nth_byte)
+        message_end_byte = data_size * 8 * every_nth_byte // least_significant_bits + header_end_byte
+        message_bytes = self._get_bytes(header_end_byte, message_end_byte, least_significant_bits, every_nth_byte)
 
-        return message_bytes
+        return header_bytes, message_bytes
 
-    def decode(
-            self,
-            redundant_bits: int = 4,
-            error_correction: bool = False) -> bytes:
+    def decode(self, encryptor: Optional[GenericEncryptor] = None) -> bytes:
+        """Decode message, getting all parameters from internal header
 
-        message_bytes = self._get_message()
+        Encryptor is optional, can be supplied to avoid asking for password twice when verifying.
+        If Encryptor is not supplied, then it will extract the used encryptor from the header in the message.
+        """
 
-        message = Message()
+        header_bytes, data_bytes = self._get_message()
 
-        decoded_message = message.decode_message(message_bytes, self.__encryptor, redundant_bits, error_correction)
+        decoded_message = Message.decode_message(header_bytes, data_bytes, encryptor)
 
         return decoded_message

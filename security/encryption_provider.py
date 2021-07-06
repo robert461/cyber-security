@@ -20,9 +20,13 @@ class EncryptionProvider:
             encryption_type: EncryptionType,
             hash_type: HashType = HashType.PBKDF2,
             decryption: bool = False,
-            is_test: Optional[bool] = False) -> GenericEncryptor:
+            is_test: Optional[bool] = False,
+            salt: Optional[bytes] = None,
+            nonce: Optional[bytes] = None,
+    ) -> GenericEncryptor:
+        """Return encryptor with given type, nonce will only be used if AES"""
 
-        hash_algo = HashProvider.get_hash(hash_type, is_test)
+        hash_algo = HashProvider.get_hash(hash_type, is_test, salt)
 
         if not encryption_type or encryption_type == EncryptionType.NONE:
             return NoneEncryptor()
@@ -31,7 +35,7 @@ class EncryptionProvider:
             return FernetEncryptor(hash_algo, decryption)
 
         if encryption_type == EncryptionType.AES:
-            return AesEncryptor(hash_algo, decryption)
+            return AesEncryptor(hash_algo, nonce)
 
         if encryption_type == EncryptionType.RSA:
             return RsaEncryptor(decryption, is_test)

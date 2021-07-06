@@ -4,6 +4,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from security.encryptors.generic_encryptor import GenericEncryptor
+from security.enums.encryption_type import EncryptionType
 
 
 class RsaEncryptor(GenericEncryptor):
@@ -11,7 +12,7 @@ class RsaEncryptor(GenericEncryptor):
     # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/rsa/
 
     def __init__(self, decryption: bool, is_test: bool = False):
-        super().__init__()
+        super().__init__(EncryptionType.RSA)
 
         if decryption:
 
