@@ -3,15 +3,13 @@ from collections import OrderedDict
 from pathlib import Path
 import struct
 from typing import Optional, Union, List, Tuple
+import math
 
 import numpy as np
 import pandas as pd
 
-from security.encryption_provider import EncryptionProvider
 from security.encryptors.generic_encryptor import GenericEncryptor
 from security.encryptors.none_encryptor import NoneEncryptor
-from security.enums.encryption_type import EncryptionType
-from security.enums.hash_type import HashType
 from wav_steganography.message import Message
 
 
@@ -203,21 +201,26 @@ class WAVFile:
         data_slice_with_message_bits_set = data_slice_with_zeroed_n_last_bits ^ binary_data_split_up
         return data_slice_with_message_bits_set
 
-    def _get_bytes(self, from_byte: int, to_byte: int, lsb_count: int, nth_byte: int) -> bytes:
+    def _get_bytes(self, from_byte: int, bits: int, lsb_count: int, nth_byte: int) -> Tuple[int, bytes]:
         """ Return bytes by reading every lsb_count bits from every nth_byte from from_byte to to_byte """
-        ones = 2**lsb_count - 1
-        bits_as_str = ''.join(f"{b & ones:0{lsb_count}b}" for b in self.data[from_byte:to_byte:nth_byte])
-        return bytes(map(lambda b: int(b, 2), textwrap.wrap(bits_as_str, 8)))
+        divisor, remainder = divmod(bits, lsb_count)
+        ones = np.repeat([2**lsb_count - 1], divisor + (remainder != 0))
+        if remainder > 0:
+            ones[-1] = 2**remainder - 1
+        to_byte = from_byte + len(ones) * nth_byte
+        relevant_bits = self.data[from_byte:to_byte:nth_byte] & ones
+        bits_as_str = ''.join(f"{data:0{round(np.log2(pow2))}b}" for data, pow2 in zip(relevant_bits, ones))
+        return to_byte, bytes(map(lambda b: int(b, 2), textwrap.wrap(bits_as_str, 8)))
 
     def _get_message(self):
         """ Decode message from this WAVFile """
-        header_end_byte = Message.header_byte_size() * 8 * Message.HEADER_EVERY_NTH_BYTE // Message.HEADER_LSB_COUNT
-        header_bytes = self._get_bytes(0, header_end_byte, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
+        header_bits = Message.header_byte_size() * 8
+        to_byte, header_bytes = self._get_bytes(0, header_bits, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
 
         least_significant_bits, every_nth_byte, *_, data_size = Message.decode_header(header_bytes)
 
-        message_end_byte = data_size * 8 * every_nth_byte // least_significant_bits + header_end_byte
-        message_bytes = self._get_bytes(header_end_byte, message_end_byte, least_significant_bits, every_nth_byte)
+        message_bits = data_size * 8
+        _, message_bytes = self._get_bytes(to_byte, message_bits, least_significant_bits, every_nth_byte)
 
         return header_bytes, message_bytes
 
