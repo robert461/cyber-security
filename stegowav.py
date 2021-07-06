@@ -4,6 +4,8 @@ import argparse
 from pathlib import Path
 import cProfile
 
+from error_correction.error_correction_provider import ErrorCorrectionProvider
+from error_correction.error_correction_type import ErrorCorrectionType
 from security.encryption_provider import EncryptionProvider
 from security.enums.encryption_type import EncryptionType
 from security.enums.hash_type import HashType
@@ -29,8 +31,11 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("-a", "--hash_type", type=int, default=HashType.PBKDF2,
                         help=f"hash type as number to use ({possible_hash_values})")
 
+    parser.add_argument("-o", "--error_correction_type", type = int, default = 0,
+                        help = "number of redundant bits for hamming code")
+
     parser.add_argument("-r", "--redundant_bits", type=int, default=0,
-                        help="number of redundant bits for hamming code")
+                        help="number of redundant bits for error correction")
 
     parser.add_argument("-l", "--lsb", type=int, default=2,
                         help="number of least significant bits to use while encoding")
@@ -47,10 +52,12 @@ def handle_args(args):
 
     encryption_type = EncryptionType(args.encryption_type)
     hash_type = HashType(args.hash_type)
+    error_correction_type = ErrorCorrectionType(args.error_correction_type)
 
     wav_file = WAVFile(args.input)
 
     encryptor = EncryptionProvider.get_encryptor(encryption_type, hash_type, decryption=args.decode)
+    error_correction = ErrorCorrectionProvider.get_error_correction(error_correction_type=error_correction_type)
 
     if args.encode:
         wav_file.encode(
@@ -59,6 +66,7 @@ def handle_args(args):
             every_nth_byte=args.use_nth_byte,
             redundant_bits=args.redundant_bits,
             encryptor=encryptor,
+            error_correction=error_correction
         )
 
     if args.decode:

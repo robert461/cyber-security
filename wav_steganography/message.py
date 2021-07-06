@@ -1,6 +1,8 @@
 import struct
 from typing import Union, Optional, Tuple
 
+from error_correction.generic_error_correction import GenericErrorCorrection
+from error_correction.none_error_correction import NoneErrorCorrection
 from error_correction.reed_solomon_error_correction import ReedSolomonErrorCorrection
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.aes_encryptor import AesEncryptor
@@ -46,6 +48,7 @@ class Message:
             every_nth_byte: int,
             redundant_bits: int,
             encryptor: GenericEncryptor = NoneEncryptor(),
+            error_correction: GenericErrorCorrection = NoneErrorCorrection(),
     ) -> Tuple[DataChunk, DataChunk]:
 
         data: bytes = Message.__message_as_bytes(data)
@@ -86,8 +89,10 @@ class Message:
             header_bytes: bytes,
             data_bytes: bytes,
             encryptor: Optional[GenericEncryptor] = None,
+            error_correction: Optional[GenericErrorCorrection] = NoneErrorCorrection(),
     ):
         *_, redundant_bits, encryption_type, hash_type, salt, nonce, data_size = Message.decode_header(header_bytes)
+
         if encryptor is None:
             encryptor = EncryptionProvider.get_encryptor(
                 EncryptionType(encryption_type),
@@ -96,15 +101,19 @@ class Message:
                 salt=salt,
                 nonce=nonce,
             )
-        data = Message.__decode_error_correction(data_bytes, redundant_bits)
+
+        data = Message.__decode_error_correction(data_bytes, redundant_bits, error_correction)
         data = Message.__decrypt(data, encryptor)
 
         return data
 
     @staticmethod
-    def __decode_error_correction(data: bytes, redundant_bits: int):
+    def __decode_error_correction(
+            data: bytes,
+            redundant_bits: int,
+            error_correction: Optional[GenericErrorCorrection] = NoneErrorCorrection()):
 
-        data = Message.__decode_rs_hamming_error_correction(data, redundant_bits)
+        data = error_correction.decode(data, redundant_bits)
 
         return data
 
@@ -129,33 +138,15 @@ class Message:
         return data
 
     @staticmethod
-    def __encode_error_correction(data: bytes, redundant_bits: int) -> bytes:
+    def __encode_error_correction(
+            data: bytes,
+            redundant_bits: int,
+            error_correction: Optional[GenericErrorCorrection] = None) -> bytes:
 
-        data_error_corrected = Message.__encode_rs_error_correction(data, redundant_bits)
+        data_error_corrected = error_correction.encode(data, redundant_bits)
         assert len(data_error_corrected) != 0, f"data is empty after error correction: {data_error_corrected}"
 
         return data_error_corrected
-
-    @staticmethod
-    def __decode_hamming_error_correction(data: bytes, redundant_bits: int) -> bytes:
-
-        data = HammingErrorCorrection.decode(data, redundant_bits)
-
-        return data
-
-    @staticmethod
-    def __encode_rs_error_correction(data: bytes, redundant_bits) -> bytes:
-
-        data = ReedSolomonErrorCorrection.encode(data, redundant_bits)
-
-        return data
-
-    @staticmethod
-    def __decode_rs_hamming_error_correction(data: bytes, redundant_bits) -> bytes:
-
-        data = ReedSolomonErrorCorrection.decode(data, redundant_bits)
-
-        return data
 
     @staticmethod
     def __message_as_bytes(message: Union[bytes, str]):

@@ -13,5 +13,5 @@ class GenericErrorCorrection(ABC):
 
     @staticmethod
     @abstractmethod
-    def encode(data: bytes, redundant_bits: int) -> bytes:
+    def decode(data: bytes, redundant_bits: int) -> bytes:
         pass

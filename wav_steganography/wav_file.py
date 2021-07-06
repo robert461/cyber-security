@@ -7,6 +7,8 @@ from typing import Optional, Union, List, Tuple
 import numpy as np
 import pandas as pd
 
+from error_correction.generic_error_correction import GenericErrorCorrection
+from error_correction.none_error_correction import NoneErrorCorrection
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.generic_encryptor import GenericEncryptor
 from security.encryptors.none_encryptor import NoneEncryptor
@@ -131,6 +133,7 @@ class WAVFile:
             every_nth_byte: int = 1,
             redundant_bits: int = 0,
             encryptor: GenericEncryptor = NoneEncryptor(),
+            error_correction: GenericErrorCorrection = NoneErrorCorrection(),
     ):
         """ Encode a message in the given WAVFile
 
@@ -145,6 +148,7 @@ class WAVFile:
             every_nth_byte,
             redundant_bits,
             encryptor,
+            error_correction
         )
 
         amplitudes_available = len(self.data) - header_chunk.amplitudes_required
@@ -221,7 +225,11 @@ class WAVFile:
 
         return header_bytes, message_bytes
 
-    def decode(self, encryptor: Optional[GenericEncryptor] = None) -> bytes:
+    def decode(
+            self,
+            encryptor: Optional[GenericEncryptor] = None,
+            error_correction: Optional[GenericErrorCorrection] = None
+    ) -> bytes:
         """Decode message, getting all parameters from internal header
 
         Encryptor is optional, can be supplied to avoid asking for password twice when verifying.
