@@ -52,7 +52,7 @@ def comparison_pre_and_after_mp3_conversion(file_path, bitrate=None, print_=Fals
     print(f"Average difference (bitrate={bitrate}): {np.average(np.abs(pre_data - after_data)):.1f}")
     for bit in range(16):
         power = 1 << bit
-        # print(f"Ones for bit {bit+1}: {np.sum(pre_data & power != 0)} / {total}")
+
         correct = np.sum(pre_data & power == after_data & power)
         percent = correct / total
         percentages.append(percent)
@@ -96,7 +96,6 @@ def plot_bit_percentages_for_file(curr_file_path: Path, show=False):
 
 
 def main():
-    # plot_bit_percentages_for_file(find_matching_audio_file("zoo"))
     for path in all_audio_files.values():
         plot_bit_percentages_for_file(path)
 

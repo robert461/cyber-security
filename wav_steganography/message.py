@@ -104,9 +104,6 @@ class Message:
     @staticmethod
     def __decode_error_correction(data: bytes, redundant_bits: int):
 
-        # if redundant_bits > 0:
-        #    data = Message.__correct_errors_hamming(data, redundant_bits)
-
         data = Message.__decode_rs_hamming_error_correction(data, redundant_bits)
 
         return data
@@ -133,9 +130,6 @@ class Message:
 
     @staticmethod
     def __encode_error_correction(data: bytes, redundant_bits: int) -> bytes:
-
-        # if redundant_bits > 0:
-        #    data = HammingErrorCorrection.encode_hamming_error_correction(data, redundant_bits)
 
         data_error_corrected = Message.__encode_rs_error_correction(data, redundant_bits)
         assert len(data_error_corrected) != 0, f"data is empty after error correction: {data_error_corrected}"
