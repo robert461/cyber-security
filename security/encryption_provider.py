@@ -35,7 +35,7 @@ class EncryptionProvider:
             return FernetEncryptor(hash_algo, decryption)
 
         if encryption_type == EncryptionType.AES:
-            return AesEncryptor(hash_algo, decryption, nonce)
+            return AesEncryptor(hash_algo, nonce)
 
         if encryption_type == EncryptionType.RSA:
             return RsaEncryptor(decryption, is_test)

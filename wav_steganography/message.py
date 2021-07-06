@@ -57,7 +57,7 @@ class Message:
         # Get salt/nonce values if the given encryptor has these values, otherwise use all 0 default salt/nonce
         salt = getattr(encryptor, "salt", b"0" * SaltedHash.SALT_LENGTH)
         nonce = getattr(encryptor, "nonce", b"0" * AesEncryptor.NONCE_LENGTH)
-        hash_type = getattr(encryptor, "hash_type", 0)
+        hash_type = getattr(encryptor, "hash_type", HashType.PBKDF2)
 
         # Pack header data according to structure described in message
         header_data = struct.pack(

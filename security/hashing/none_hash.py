@@ -6,6 +6,7 @@ from security.utils.hash_utils import HashUtils
 class NoneHash(GenericHash):
 
     # No hashing at all
+    HASH_TYPE = HashType.NONE
 
     def __init__(self):
         super().__init__()
