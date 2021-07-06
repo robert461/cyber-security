@@ -1,12 +1,10 @@
 from enum import Enum
 
 
-class EvalReportChoice(str, Enum):
+class EvalReportResult(str, Enum):
 
-    FIRST = 'First'
-    SECOND = 'Second'
-    BOTH = 'Both'
-    NONE = 'None'
+    TRUE = 'True'
+    FALSE = 'False'
 
     @classmethod
     def has_value(cls, value):

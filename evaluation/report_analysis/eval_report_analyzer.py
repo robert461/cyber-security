@@ -1,6 +1,7 @@
 from typing import Dict, List
 
 from evaluation.report_analysis.eval_report_choice import EvalReportChoice
+from evaluation.report_analysis.eval_report_result import EvalReportResult
 
 
 class EvalReportAnalyzer:
@@ -35,16 +36,12 @@ class EvalReportAnalyzer:
                 name = f'{files_used[0]}-{files_used[1]}'
 
                 if name not in file_pairs:
-                    file_pairs[name] = {'First': 0, 'Second': 0, 'Both': 0, 'None': 0}
+                    file_pairs[name] = {key: 0 for key in EvalReportChoice}
 
-                if eval_report_choice == EvalReportChoice.FIRST:
-                    file_pairs[name]['First'] += 1
-                elif eval_report_choice == EvalReportChoice.SECOND:
-                    file_pairs[name]['Second'] += 1
-                elif eval_report_choice == EvalReportChoice.BOTH:
-                    file_pairs[name]['Both'] += 1
-                elif eval_report_choice == EvalReportChoice.NONE:
-                    file_pairs[name]['None'] += 1
+                if EvalReportChoice.has_value(eval_report_choice):
+                    file_pairs[name][eval_report_choice] += 1
+                else:
+                    print(f'eval report choice "{eval_report_choice}" does not match EvalReportChoice')
 
             entries_by_files[entries_by_file] = file_pairs
 
@@ -65,11 +62,13 @@ class EvalReportAnalyzer:
                 name = f'{files_used[0]}-{files_used[1]}'
 
                 if name not in file_pairs:
-                    file_pairs[name] = {'True': 0, 'False': 0}
+                    file_pairs[name] = {key: 0 for key in EvalReportResult}
 
                 eval_result = eval_report_entry[4]
-                if eval_result == 'True' or eval_result == 'False':
+                if EvalReportResult.has_value(eval_result):
                     file_pairs[name][eval_result] += 1
+                else:
+                    print(f'eval report result "{eval_result}" does not match EvalReportResult')
 
             entries_by_files[entries_by_file] = file_pairs
 
