@@ -24,11 +24,11 @@ def find_matching_audio_file(substring_of_filename: str) -> Path:
             return path
 
 
-def convert_to_mp3_and_back(file_path, bitrate="312k") -> Tuple[WAVFile, WAVFile]:
+def convert_to_file_format_and_back(file_path, bitrate=None, file_format="mp3") -> Tuple[WAVFile, WAVFile]:
     with TemporaryDirectory() as tmp_dir:
         audio_file = AudioSegment.from_file(file_path)
-        mp3_file_path = Path(tmp_dir) / "converted.mp3"
-        audio_file.export(mp3_file_path, format="mp3", bitrate=bitrate)
+        mp3_file_path = Path(tmp_dir) / f"converted.{file_format}"
+        audio_file.export(mp3_file_path, format=file_format, bitrate=bitrate)
 
         mp3_file = AudioSegment.from_file(mp3_file_path)
         mp3_file.export(mp3_file_path.with_suffix(".wav"), format="wav")
@@ -38,8 +38,8 @@ def convert_to_mp3_and_back(file_path, bitrate="312k") -> Tuple[WAVFile, WAVFile
         return pre_conversion, after_conversion
 
 
-def comparison_pre_and_after_mp3_conversion(file_path, bitrate="312k", print_=False) -> Optional[List[float]]:
-    pre_conversion, after_conversion = convert_to_mp3_and_back(file_path, bitrate)
+def comparison_pre_and_after_mp3_conversion(file_path, bitrate=None, print_=False) -> Optional[List[float]]:
+    pre_conversion, after_conversion = convert_to_file_format_and_back(file_path, bitrate)
 
     pre_data = pre_conversion.data
     after_data = after_conversion.data
