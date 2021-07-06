@@ -141,7 +141,7 @@ class Message:
     def __encode_error_correction(
             data: bytes,
             redundant_bits: int,
-            error_correction: Optional[GenericErrorCorrection] = None) -> bytes:
+            error_correction: Optional[GenericErrorCorrection] = NoneErrorCorrection()) -> bytes:
 
         data_error_corrected = error_correction.encode(data, redundant_bits)
         assert len(data_error_corrected) != 0, f"data is empty after error correction: {data_error_corrected}"
