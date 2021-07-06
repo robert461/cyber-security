@@ -1,7 +1,9 @@
 from reedsolo import RSCodec
 
+from error_correction.generic_error_correction import GenericErrorCorrection
 
-class ReedSolomon:
+
+class ReedSolomonErrorCorrection(GenericErrorCorrection):
     """Reed solomon wrapper for the reedsolo pip package
 
     redundant_bits show the number of bits to add for error correction for each byte. This has
@@ -27,7 +29,7 @@ class ReedSolomon:
         if redundant_bits == 0:
             return data
 
-        ecc_byte_count_per_chunk = ReedSolomon._get_ecc_byte_count_per_chunk(redundant_bits)
+        ecc_byte_count_per_chunk = ReedSolomonErrorCorrection._get_ecc_byte_count_per_chunk(redundant_bits)
 
         rsc = RSCodec(ecc_byte_count_per_chunk)
         encoded_data = rsc.encode(data)
@@ -40,7 +42,7 @@ class ReedSolomon:
         if redundant_bits == 0:
             return data
 
-        ecc_byte_count_per_chunk = ReedSolomon._get_ecc_byte_count_per_chunk(redundant_bits)
+        ecc_byte_count_per_chunk = ReedSolomonErrorCorrection._get_ecc_byte_count_per_chunk(redundant_bits)
 
         rsc = RSCodec(ecc_byte_count_per_chunk)
 

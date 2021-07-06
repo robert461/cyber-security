@@ -1,7 +1,7 @@
 import struct
 from typing import Union, Optional, Tuple
 
-from error_correction.reed_solomon import ReedSolomon
+from error_correction.reed_solomon import ReedSolomonErrorCorrection
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.aes_encryptor import AesEncryptor
 from security.encryptors.generic_encryptor import GenericEncryptor
@@ -146,14 +146,14 @@ class Message:
     @staticmethod
     def __encode_rs_error_correction(data: bytes, redundant_bits) -> bytes:
 
-        data = ReedSolomon.encode(data, redundant_bits)
+        data = ReedSolomonErrorCorrection.encode(data, redundant_bits)
 
         return data
 
     @staticmethod
     def __decode_rs_hamming_error_correction(data: bytes, redundant_bits) -> bytes:
 
-        data = ReedSolomon.decode(data, redundant_bits)
+        data = ReedSolomonErrorCorrection.decode(data, redundant_bits)
 
         return data
 
