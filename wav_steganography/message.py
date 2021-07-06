@@ -66,7 +66,7 @@ class Message:
             every_nth_byte,
             redundant_bits,
             encryptor.encryption_type.value,
-            hash_type,
+            hash_type.value,
             salt,
             nonce,
             len(data),
