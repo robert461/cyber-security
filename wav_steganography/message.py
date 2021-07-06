@@ -1,7 +1,7 @@
 import struct
 from typing import Union, Optional, Tuple
 
-from error_correction.reed_solomon import ReedSolomonErrorCorrection
+from error_correction.reed_solomon_error_correction import ReedSolomonErrorCorrection
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.aes_encryptor import AesEncryptor
 from security.encryptors.generic_encryptor import GenericEncryptor
@@ -139,7 +139,7 @@ class Message:
     @staticmethod
     def __decode_hamming_error_correction(data: bytes, redundant_bits: int) -> bytes:
 
-        data = HammingErrorCorrection.decode_hamming_error_correction(data, redundant_bits)
+        data = HammingErrorCorrection.decode(data, redundant_bits)
 
         return data
 

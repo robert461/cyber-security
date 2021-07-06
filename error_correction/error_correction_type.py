@@ -3,5 +3,6 @@ from enum import Enum
 
 class ErrorCorrectionType(Enum):
 
-    HAMMING = 0
-    REED_SOLOMON = 1
+    NONE = 0
+    HAMMING = 1
+    REED_SOLOMON = 2
