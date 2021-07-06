@@ -1,5 +1,6 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Tuple, List, Optional
 
 import matplotlib
 import numpy as np
@@ -17,13 +18,13 @@ for glob in ["*.wav", "1min_files/*.wav"]:
         all_audio_files[curr_path.stem] = curr_path
 
 
-def find_matching_audio_file(substring_of_filename: str):
+def find_matching_audio_file(substring_of_filename: str) -> Path:
     for stem, path in all_audio_files.items():
         if substring_of_filename in stem:
             return path
 
 
-def comparison_pre_and_after_mp3_conversion(file_path, bitrate="312k", print_=False):
+def convert_to_mp3_and_back(file_path, bitrate="312k") -> Tuple[WAVFile, WAVFile]:
     with TemporaryDirectory() as tmp_dir:
         audio_file = AudioSegment.from_file(file_path)
         mp3_file_path = Path(tmp_dir) / "converted.mp3"
@@ -34,25 +35,30 @@ def comparison_pre_and_after_mp3_conversion(file_path, bitrate="312k", print_=Fa
 
         pre_conversion = WAVFile(file_path)
         after_conversion = WAVFile(mp3_file_path.with_suffix(".wav"))
+        return pre_conversion, after_conversion
 
-        pre_data = pre_conversion.data
-        after_data = after_conversion.data
 
-        total = len(pre_data)
-        percentages = []
-        if len(pre_data) != len(after_data):
-            print(f"Shape mismatch pre-conversion: {len(pre_data)} with post-conversion: {len(after_data)}, skipping!")
-            return None
-        print(f"Average difference (bitrate={bitrate}): {np.average(np.abs(pre_data - after_data)):.1f}")
-        for bit in range(16):
-            power = 1 << bit
-            # print(f"Ones for bit {bit+1}: {np.sum(pre_data & power != 0)} / {total}")
-            correct = np.sum(pre_data & power == after_data & power)
-            percent = correct / total
-            percentages.append(percent)
-            if print_:
-                print(f"Bit {bit+1} ({power}): {correct:,d} are the same out of {total:,d} ({percent:.1%})")
-        return percentages
+def comparison_pre_and_after_mp3_conversion(file_path, bitrate="312k", print_=False) -> Optional[List[float]]:
+    pre_conversion, after_conversion = convert_to_mp3_and_back(file_path, bitrate)
+
+    pre_data = pre_conversion.data
+    after_data = after_conversion.data
+
+    total = len(pre_data)
+    percentages = []
+    if len(pre_data) != len(after_data):
+        print(f"Shape mismatch pre-conversion: {len(pre_data)} with post-conversion: {len(after_data)}, skipping!")
+        return None
+    print(f"Average difference (bitrate={bitrate}): {np.average(np.abs(pre_data - after_data)):.1f}")
+    for bit in range(16):
+        power = 1 << bit
+        # print(f"Ones for bit {bit+1}: {np.sum(pre_data & power != 0)} / {total}")
+        correct = np.sum(pre_data & power == after_data & power)
+        percent = correct / total
+        percentages.append(percent)
+        if print_:
+            print(f"Bit {bit + 1} ({power}): {correct:,d} are the same out of {total:,d} ({percent:.1%})")
+    return percentages
 
 
 def plot_bit_percentages_for_file(curr_file_path: Path, show=False):

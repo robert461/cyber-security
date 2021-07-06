@@ -147,11 +147,15 @@ class WAVFile:
             encryptor,
         )
 
-        bits_required_for_data = len(data_chunk.data) * 8
-        bits_available = (len(self.data) - len(header_chunk.data) * 8) * least_significant_bits // every_nth_byte
-        if bits_available < bits_required_for_data:
+        amplitudes_available = len(self.data) - header_chunk.amplitudes_required
+        if amplitudes_available < data_chunk.amplitudes_required:
             raise ValueError(
-                f"ERROR: File not large enough for the given message {bits_available} < {bits_required_for_data}!")
+                f"ERROR: File not large enough for the given message! "
+                f"Required amplitudes: header = {header_chunk.amplitudes_required}, "
+                f"data = {data_chunk.amplitudes_required}.\n\tAmplitudes available in total: {len(self.data)}. "
+                f"After encoding header not enough amplitudes left: "
+                f"{amplitudes_available} < {data_chunk.amplitudes_required}."
+            )
 
         byte_index = 0
         for chunk in [header_chunk, data_chunk]:
