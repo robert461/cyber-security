@@ -73,17 +73,17 @@ def process_user_evaluation(randomized_sample_list, example_name):
     choice = input('Which audio file showed degradation? File 1(1), file 2(2), both(b) or none(n)? If you want to '
                    'repeat the audio playback press (r)')
     if choice == '1':
-        append_eval_report(randomized_sample_list, "1", example_name)
+        append_eval_report(randomized_sample_list, "First", example_name)
         print('You chose file 1.')
     elif choice == '2':
         print('You chose file 2.')
-        append_eval_report(randomized_sample_list, "2", example_name)
+        append_eval_report(randomized_sample_list, "Second", example_name)
     elif choice == 'b':
         print('You detected audio degradation in both files.')
-        append_eval_report(randomized_sample_list, "b", example_name)
+        append_eval_report(randomized_sample_list, "Both", example_name)
     elif choice == 'n':
         print('You were not able to detect any audio degradation.')
-        append_eval_report(randomized_sample_list, "n", example_name)
+        append_eval_report(randomized_sample_list, "None", example_name)
     elif choice == 'r':
         print('Repeating examples...')
         play_sounds(randomized_sample_list, example_name)

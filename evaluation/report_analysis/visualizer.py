@@ -13,6 +13,20 @@ class EvalReportVisualizer:
     def __init__(self):
         pass
 
+    def draw_pandas_barh_for_each_file(
+            self,
+            eval_reports_by_files: Dict[str, Dict[str, Dict[str, int]]],
+            graphs_path: str,
+            base_filename: str):
+
+        for eval_reports_by_file in eval_reports_by_files:
+            print(f'drawing {base_filename} for {eval_reports_by_file}')
+
+            self.draw_pandas_barh(
+                eval_reports_by_files[eval_reports_by_file],
+                graphs_path,
+                f'{base_filename}_{eval_reports_by_file}')
+
     def draw_pandas_barh(
             self,
             values_dict: Dict[str, Dict[str, int]],
@@ -35,6 +49,9 @@ class EvalReportVisualizer:
             colormap = matplotlib.cm.get_cmap('Set1')
 
         graph_height = len(data) * 0.35
+
+        if graph_height < 2:
+            graph_height = 2
 
         ax = data_frame.plot.barh(stacked=True, figsize=(12, graph_height), cmap=colormap)
         ax.set_xlim(xmin=0.0, xmax=1.19)
@@ -65,8 +82,12 @@ class EvalReportVisualizer:
         ax.xaxis.set_major_formatter(lambda x, pos: f'{round(x * 100)}%')
         plt.yticks(range(len(y_labels)), y_labels)
 
+        plt.title(f'{filename}')
+
         plt.tight_layout()
         plt.savefig(f'{graphs_path}/{filename}', dpi=500)
+
+        plt.close()
 
     @staticmethod
     def __prepare_plot_data(values_dict: Dict[str, Dict[str, int]]) -> \

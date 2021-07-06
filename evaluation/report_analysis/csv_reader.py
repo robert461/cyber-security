@@ -19,15 +19,18 @@ class CsvReader:
 
         return eval_reports
 
-    def __read_file_as_csv(self, filename) -> List[List[str]]:
+    @staticmethod
+    def __read_file_as_csv(filename) -> List[List[str]]:
 
-        with open(f'{self.__eval_reports_path}/{filename}') as csv_file:
+        with open(f'{filename}') as csv_file:
 
             csv_reader = csv.reader(csv_file, delimiter=';', quotechar='|')
             rows: List[List[str]] = []
 
             for reader_row in csv_reader:
                 if not reader_row[0] == 'Example Name':
+                    reader_row[0] = reader_row[0].replace('.wav', '')
+
                     rows.append(reader_row)
 
             return rows
