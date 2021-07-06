@@ -8,3 +8,4 @@ vext.gi
 cryptography
 simpleaudio
 reedsolo
+pydub
