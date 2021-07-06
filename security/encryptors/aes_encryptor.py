@@ -14,7 +14,7 @@ class AesEncryptor(GenericEncryptor):
     # https://cryptography.io/en/latest/hazmat/primitives/symmetric-encryption/#algorithms
     NONCE_LENGTH = 16
 
-    def __init__(self, hash_algo: GenericHash, decryption: bool, nonce: Optional[bytes] = None):
+    def __init__(self, hash_algo: GenericHash, nonce: Optional[bytes] = None):
         super().__init__(EncryptionType.AES)
 
         if type(hash_algo) == NoneHash:

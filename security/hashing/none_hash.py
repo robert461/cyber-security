@@ -6,14 +6,9 @@ from security.utils.hash_utils import HashUtils
 class NoneHash(GenericHash):
 
     # No hashing at all
-    HASH_TYPE = HashType.NONE
 
     def __init__(self):
         super().__init__()
-
-    @property
-    def hash_type(self):
-        return self.HASH_TYPE
 
     def get_key(self) -> bytes:
         password_bytes = HashUtils.get_password_from_user()
