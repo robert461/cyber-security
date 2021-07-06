@@ -7,6 +7,7 @@ from security.encryptors.aes_encryptor import AesEncryptor
 from security.encryptors.generic_encryptor import GenericEncryptor
 from security.encryptors.none_encryptor import NoneEncryptor
 from security.enums.encryption_type import EncryptionType
+from security.enums.hash_type import HashType
 from security.hashing.salted_hash import SaltedHash
 from wav_steganography.data_chunk import DataChunk
 from error_correction.hamming_error_correction import HammingErrorCorrection
@@ -16,17 +17,18 @@ class Message:
     """ A message class implementing an Encoder and an Decoder
 
     This header is used to encode the meta information for the message before the actual data part.
-    Currently, this consists of 7 values:
+    Currently, this consists of 8 values:
         * The least significant bits used in the data
         * The nth bits used in the data
         * The number of redundant bits per byte used in the data (4 means a byte becomes 12 bits in size)
         * The encryption type (0 to 3, as defined in EncryptionType)
+        * The hash type (0 to 2, as defined in HashType)
         * The password hash salt (hardcoded as 16 bytes, only used if encryption is used)
         * The nonce (hardcoded as 16 bytes, only used if encryption is AES)
         * The length of the data in bytes (excluding the header)
     For the header, the values are defined below.
     """
-    HEADER_FORMAT = f"<BHHB{SaltedHash.SALT_LENGTH}s{AesEncryptor.NONCE_LENGTH}sI"
+    HEADER_FORMAT = f"<BHHBB{SaltedHash.SALT_LENGTH}s{AesEncryptor.NONCE_LENGTH}sI"
     HEADER_LSB_COUNT = 8
     HEADER_EVERY_NTH_BYTE = 1
     HEADER_REDUNDANT_BITS = 40
@@ -55,6 +57,7 @@ class Message:
         # Get salt/nonce values if the given encryptor has these values, otherwise use all 0 default salt/nonce
         salt = getattr(encryptor, "salt", b"0" * SaltedHash.SALT_LENGTH)
         nonce = getattr(encryptor, "nonce", b"0" * AesEncryptor.NONCE_LENGTH)
+        hash_type = getattr(encryptor, "hash_type", 0)
 
         # Pack header data according to structure described in message
         header_data = struct.pack(
@@ -63,6 +66,7 @@ class Message:
             every_nth_byte,
             redundant_bits,
             encryptor.encryption_type.value,
+            hash_type,
             salt,
             nonce,
             len(data),
@@ -83,10 +87,11 @@ class Message:
             data_bytes: bytes,
             encryptor: Optional[GenericEncryptor] = None,
     ):
-        *_, redundant_bits, encryption_type, salt, nonce, data_size = Message.decode_header(header_bytes)
+        *_, redundant_bits, encryption_type, hash_type, salt, nonce, data_size = Message.decode_header(header_bytes)
         if encryptor is None:
             encryptor = EncryptionProvider.get_encryptor(
                 EncryptionType(encryption_type),
+                HashType(hash_type),
                 decryption=True,
                 salt=salt,
                 nonce=nonce,
@@ -147,20 +152,14 @@ class Message:
     @staticmethod
     def __encode_rs_error_correction(data: bytes, redundant_bits) -> bytes:
 
-        print("Encoding:", data)
         data = ReedSolomon.encode(data, redundant_bits)
-        print("Encoded:", data)
-        print()
 
         return data
 
     @staticmethod
     def __decode_rs_hamming_error_correction(data: bytes, redundant_bits) -> bytes:
 
-        print("Decoding:", data)
         data = ReedSolomon.decode(data, redundant_bits)
-        print("Decoded:", data)
-        print()
 
         return data
 

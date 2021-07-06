@@ -1,15 +1,14 @@
-import os
-from typing import Optional
-
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+from security.enums.hash_type import HashType
 from security.hashing.salted_hash import SaltedHash
 
 
 class Pbkdf2Hash(SaltedHash):
 
     # https://cryptography.io/en/latest/hazmat/primitives/key-derivation-functions/#pbkdf2
+    HASH_TYPE = HashType.PBKDF2
 
     # defaults specific for pbkdf
     HASH_LENGTH = 32

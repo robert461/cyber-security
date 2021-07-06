@@ -25,19 +25,15 @@ class AesEncryptor(GenericEncryptor):
         if nonce is None:
             nonce = os.urandom(AesEncryptor.NONCE_LENGTH)
 
-        #if decryption:
-        #    key = self.__hash_algo.get_key_with_existing_credentials()
-
-        #    if nonce is None:
-        #        nonce_string = input('Please enter the nonce for AES decryption: ')
-        #        nonce = bytes.fromhex(nonce_string)
-
-        #else:
         key = self.__hash_algo.get_key()
 
         self.__nonce = nonce
 
         self.__cipher = Cipher(algorithms.AES(key), modes.CTR(self.__nonce))
+
+    @property
+    def hash_type(self):
+        return self.__hash_algo.hash_type
 
     @property
     def salt(self):

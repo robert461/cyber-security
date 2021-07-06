@@ -1,11 +1,13 @@
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
+from security.enums.hash_type import HashType
 from security.hashing.salted_hash import SaltedHash
 
 
 class ScryptHash(SaltedHash):
 
     # https://cryptography.io/en/latest/hazmat/primitives/key-derivation-functions/#scrypt
+    HASH_TYPE = HashType.SCRYPT
 
     # defaults for this specific hash
     HASH_LENGTH = 32

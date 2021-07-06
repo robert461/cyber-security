@@ -30,6 +30,10 @@ class FernetEncryptor(GenericEncryptor):
         self.__fernet = Fernet(key_base64)
 
     @property
+    def hash_type(self):
+        return self.__hash_algo.hash_type
+
+    @property
     def salt(self):
         if hasattr(self.__hash_algo, "salt"):
             return self.__hash_algo.salt

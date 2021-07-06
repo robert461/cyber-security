@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from security.enums.hash_type import HashType
+
 
 class GenericHash(ABC):
 
