@@ -40,6 +40,8 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--use_nth_byte", type=int, default=1,
                         help="use only every nth byte (e.g. if 4: 1 byte will be used for data, 3 will be skipped)")
 
+    parser.add_argument("-f", "--fill", action="store_true", help="fill entire file by repeating data")
+
     parser.add_argument("--profile", action="store_true", help="profile code (show which parts are taking long)")
 
     parser.add_argument("-s", "--spectrogram", action="store_true", help="display a spectrogram of the given file")
@@ -71,6 +73,7 @@ def handle_args(args):
             every_nth_byte=args.use_nth_byte,
             redundant_bits=args.redundant_bits,
             encryptor=encryptor,
+            repeat_data=args.fill,
         )
 
     if args.decode:

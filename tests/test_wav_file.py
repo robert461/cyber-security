@@ -137,10 +137,22 @@ def test_various_lsbs():
 
 
 def test_random_configurations():
-    for i in range(10):
+    for _ in range(10):
         data = get_random_string(random.randint(1, 100)).encode("UTF-8")
         lsb = random.randint(1, 16)
         every_nth_byte = random.randint(1, 10)
         redundant_bits = random.randint(0, 50)
         wav_file = WAVFile(audio_path / "voice_hello.wav")
         wav_file.encode(data, least_significant_bits=lsb, every_nth_byte=every_nth_byte, redundant_bits=redundant_bits)
+
+
+def test_repeating_data():
+    """ Test various configurations with repeating data to ensure that it doesn't overflow"""
+    for _ in range(10):
+        data = get_random_string(random.randint(1, 100)).encode("UTF-8")
+        lsb = random.randint(1, 16)
+        every_nth_byte = random.randint(1, 10)
+        redundant_bits = random.randint(0, 50)
+        wav_file = WAVFile(audio_path / "voice_hello.wav")
+        wav_file.encode(data, least_significant_bits=lsb, every_nth_byte=every_nth_byte, redundant_bits=redundant_bits,
+                        repeat_data=True)

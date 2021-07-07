@@ -10,6 +10,7 @@ import pandas as pd
 
 from security.encryptors.generic_encryptor import GenericEncryptor
 from security.encryptors.none_encryptor import NoneEncryptor
+from wav_steganography.data_chunk import DataChunk
 from wav_steganography.message import Message
 
 
@@ -53,6 +54,7 @@ class WAVFile:
 
     def __init__(self, filename: Union[Path, str]):
         """ Parse WAV file given a path to audio file """
+        self._created_from_filename = filename
         self.header = h = OrderedDict()
         with open(filename, 'rb') as wav_file:
 
@@ -123,7 +125,7 @@ class WAVFile:
             plt.savefig(filename)
 
     def get_channel_data(self, channel1based: int = 1):
-        channels = self.header["NumChannels"]
+        channels = self.num_channels
         if not (1 <= channel1based <= channels):
             raise ValueError(f"Non-existent channel: {channel1based} (#num channels: {channels})")
         # E.g. start at 0, take every 2 number
@@ -137,6 +139,7 @@ class WAVFile:
         ax.set_ylabel("Frequency (Hz)")
         ax.set_xlabel("Time (s)")
         if show:
+            plt.title(f"Spectrogram for file {self._created_from_filename}")
             plt.show()
         if filename is not None:
             plt.savefig(filename)
@@ -146,6 +149,10 @@ class WAVFile:
     def sample_rate(self):
         return self.header["SampleRate"]
 
+    @property
+    def num_channels(self):
+        return self.header["NumChannels"]
+
     def encode(
             self,
             data: bytes,
@@ -153,6 +160,7 @@ class WAVFile:
             every_nth_byte: int = 1,
             redundant_bits: int = 0,
             encryptor: GenericEncryptor = NoneEncryptor(),
+            repeat_data: bool = False,
     ):
         """ Encode a message in the given WAVFile
 
@@ -161,15 +169,25 @@ class WAVFile:
         """
         assert least_significant_bits <= self.header["BitsPerSample"]
 
-        header_chunk, data_chunk = Message.encode_message(
-            data,
-            least_significant_bits,
-            every_nth_byte,
-            redundant_bits,
-            encryptor,
-        )
+        # The loop will run once if repeat_data = False, and twice if it is True. The loop is used
+        # to avoid code duplication. Calculating the needed data size in advance when repeating is hard,
+        # (would have to account for redundancy, encryption, etc.), therefore the first iteration is
+        # used as an estimate for the needed size in the second run.
+        while True:
+            header_chunk, data_chunk = Message.encode_message(
+                data,
+                least_significant_bits,
+                every_nth_byte,
+                redundant_bits,
+                encryptor,
+            )
+            amplitudes_available = len(self.data) - header_chunk.amplitudes_required
+            if repeat_data:
+                data *= amplitudes_available // data_chunk.amplitudes_required
+                repeat_data = False
+            else:
+                break
 
-        amplitudes_available = len(self.data) - header_chunk.amplitudes_required
         if amplitudes_available < data_chunk.amplitudes_required:
             raise ValueError(
                 f"ERROR: File not large enough for the given message! "
@@ -179,27 +197,33 @@ class WAVFile:
                 f"{amplitudes_available} < {data_chunk.amplitudes_required}."
             )
 
-        byte_index = 0
-        for chunk in [header_chunk, data_chunk]:
-            nth = chunk.every_nth_byte
-
-            binary_data = ''.join(map(lambda b: f"{b:08b}", chunk.data))  # e.g. "0010101011101100"
-            lsb_bits = textwrap.wrap(binary_data, chunk.least_significant_bits)  # e.g. ["00", "10", ...]
-            binary_data_split_up = list(map(lambda b: int(b, 2), lsb_bits))  # e.g. [0, 2, ...]
-            end_byte_index = len(binary_data_split_up) * nth + byte_index  # e.g. 32 on first iteration
-
-            self.data[byte_index:end_byte_index:nth] = self._set_last_n_bits_in_array(
-                self.data[byte_index:end_byte_index:nth],
-                binary_data_split_up,
-                chunk.least_significant_bits,
-            )
-
-            byte_index = end_byte_index
+        self._write_chunks([header_chunk, data_chunk])
 
         decoded_message = self.decode(encryptor=encryptor)
 
         assert decoded_message == data,\
             f'Cannot decode encrypted message: "{decoded_message}" != "{data}"'
+
+    def _write_chunks(self, chunks: List[DataChunk], at_byte: int = 0):
+        """ Encode the given chunks on after another, starting at at_byte """
+        for chunk in chunks:
+            at_byte = self._write_chunk(chunk, at_byte)
+
+    def _write_chunk(self, chunk: DataChunk, at_byte: int) -> int:
+        """ Encode a given chunk at the specified byte index """
+        nth = chunk.every_nth_byte
+
+        binary_data = ''.join(map(lambda b: f"{b:08b}", chunk.data))  # e.g. "0010101011101100"
+        lsb_bits = textwrap.wrap(binary_data, chunk.least_significant_bits)  # e.g. ["00", "10", ...]
+        binary_data_split_up = list(map(lambda b: int(b, 2), lsb_bits))  # e.g. [0, 2, ...]
+        end_byte_index = len(binary_data_split_up) * nth + at_byte  # e.g. 32 on first iteration
+
+        self.data[at_byte:end_byte_index:nth] = self._set_last_n_bits_in_array(
+            self.data[at_byte:end_byte_index:nth],
+            binary_data_split_up,
+            chunk.least_significant_bits,
+        )
+        return end_byte_index
 
     @staticmethod
     def _set_last_n_bits_in_array(data_slice: np.ndarray, binary_data_split_up, n_bits_to_set: int):
