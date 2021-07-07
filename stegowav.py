@@ -4,6 +4,8 @@ import argparse
 from pathlib import Path
 import cProfile
 
+from matplotlib import pyplot as plt
+
 from security.encryption_provider import EncryptionProvider
 from security.enums.encryption_type import EncryptionType
 from security.enums.hash_type import HashType
@@ -40,6 +42,8 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument("--profile", action="store_true", help="profile code (show which parts are taking long)")
 
+    parser.add_argument("-s", "--spectrogram", action="store_true", help="display a spectrogram of the given file")
+
     return parser.parse_args()
 
 
@@ -52,7 +56,15 @@ def handle_args(args):
 
     encryptor = EncryptionProvider.get_encryptor(encryption_type, hash_type, decryption=args.decode)
 
+    post_encoding_spectrum_ax, diff_ax = None, None
     if args.encode:
+        if args.spectrogram:
+            # Add diff_ax if difference is wanted
+            fig, (pre_encoding_spectrum_ax, post_encoding_spectrum_ax) = plt.subplots(2, 1)
+            pre_encoding_spectrum = wav_file.spectrogram(show=False, ax=pre_encoding_spectrum_ax)
+            pre_encoding_spectrum_ax.set_xlabel("")
+            pre_encoding_spectrum_ax.set_title("Spectrogram before encoding")
+            fig.suptitle("Comparison between pre- and post-encoding of information in WAV file")
         wav_file.encode(
             args.encode.encode("UTF-8"),
             least_significant_bits=args.lsb,
@@ -68,6 +80,21 @@ def handle_args(args):
 
         print(f"Decoded message (len={len(decoded_string)}):")
         print(decoded_string)
+
+    if args.spectrogram:
+        if post_encoding_spectrum_ax is None:
+            fig, axes = plt.subplots()
+            post_encoding_spectrum_ax = axes
+        else:
+            post_encoding_spectrum_ax.set_title("Spectrogram after encoding")
+        post_encoding_spectrum = wav_file.spectrogram(show=False, ax=post_encoding_spectrum_ax)
+        if diff_ax is not None:
+            diff_ax.pcolormesh(post_encoding_spectrum - pre_encoding_spectrum, vmax=.1)
+            diff_ax.set_yticks([])
+            diff_ax.set_xticks([])
+            diff_ax.set_title("Difference")
+
+        plt.show()
 
     if args.output:
         wav_file.write(Path(args.output), overwrite=args.overwrite)

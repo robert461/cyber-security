@@ -111,16 +111,40 @@ class WAVFile:
         assert from_i < to_i, f"Invalid interval, {from_i} >= {to_i}!"
         return self.data[from_i:to_i]
 
-    def plot(self, from_s: float = 0.0, to_s: Optional[float] = 0.1, filename: Union[Path, str] = None):
+    def plot(self, from_s: float = 0.0, to_s: Optional[float] = 0.1, *, filename: Union[Path, str] = None, show=False):
         """ Create a plot of the audio with the given time-frame """
         import seaborn as sns
         from matplotlib import pyplot as plt
         sns.set_theme()
         sns.relplot(data=self.slice(from_s, to_s), kind="line")
-        if filename is None:
+        if show:
             plt.show()
-        else:
+        if filename is not None:
             plt.savefig(filename)
+
+    def get_channel_data(self, channel1based: int = 1):
+        channels = self.header["NumChannels"]
+        if not (1 <= channel1based <= channels):
+            raise ValueError(f"Non-existent channel: {channel1based} (#num channels: {channels})")
+        # E.g. start at 0, take every 2 number
+        return self.data[channel1based-1::channels]
+
+    def spectrogram(self, *, filename: Union[Path, str] = None, ax=None, show=True) -> np.ndarray:
+        from matplotlib import pyplot as plt
+        if ax is None:
+            _, ax = plt.subplots()
+        spectrum, freqs, t, im = ax.specgram(self.get_channel_data(1), Fs=self.header["SampleRate"])
+        ax.set_ylabel("Frequency (Hz)")
+        ax.set_xlabel("Time (s)")
+        if show:
+            plt.show()
+        if filename is not None:
+            plt.savefig(filename)
+        return spectrum
+
+    @property
+    def sample_rate(self):
+        return self.header["SampleRate"]
 
     def encode(
             self,
