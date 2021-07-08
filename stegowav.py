@@ -46,6 +46,9 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument("-s", "--spectrogram", action="store_true", help="display a spectrogram of the given file")
 
+    parser.add_argument("-p", "--play", action="store_true",
+                        help="play the file (if -e provided, it will play after encoding, to hear the noise)")
+
     return parser.parse_args()
 
 
@@ -67,6 +70,7 @@ def handle_args(args):
             pre_encoding_spectrum_ax.set_xlabel("")
             pre_encoding_spectrum_ax.set_title("Spectrogram before encoding")
             fig.suptitle("Comparison between pre- and post-encoding of information in WAV file")
+
         wav_file.encode(
             args.encode.encode("UTF-8"),
             least_significant_bits=args.lsb,
@@ -102,6 +106,9 @@ def handle_args(args):
     if args.output:
         wav_file.write(Path(args.output), overwrite=args.overwrite)
         print(f"Written to {args.output}!")
+
+    if args.play:
+        wav_file.play()
 
 
 def main():

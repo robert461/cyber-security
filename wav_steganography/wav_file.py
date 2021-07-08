@@ -125,6 +125,7 @@ class WAVFile:
             plt.savefig(filename)
 
     def get_channel_data(self, channel1based: int = 1):
+        """ Get the data for the given channel (1 indexed). Raises a ValueError if not enough channels """
         channels = self.num_channels
         if not (1 <= channel1based <= channels):
             raise ValueError(f"Non-existent channel: {channel1based} (#num channels: {channels})")
@@ -132,6 +133,7 @@ class WAVFile:
         return self.data[channel1based-1::channels]
 
     def spectrogram(self, *, filename: Union[Path, str] = None, ax=None, show=True) -> np.ndarray:
+        """ Plot a spectrogram, if filename supplied save it, if show supplied then display interactively """
         from matplotlib import pyplot as plt
         if ax is None:
             _, ax = plt.subplots()
@@ -152,6 +154,15 @@ class WAVFile:
     @property
     def num_channels(self):
         return self.header["NumChannels"]
+
+    def play(self):
+        from pydub import AudioSegment, playback
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory(prefix="wav_steganography") as tmp_dir:
+            file_path = Path(tmp_dir) / "tmp_audio_segment.wav"
+            self.write(file_path, overwrite=True)
+            audio_segment = AudioSegment.from_file(file_path)
+            playback.play(audio_segment)
 
     def encode(
             self,
@@ -249,16 +260,31 @@ class WAVFile:
         data_slice_with_message_bits_set = data_slice_with_zeroed_n_last_bits ^ binary_data_split_up
         return data_slice_with_message_bits_set
 
-    def _get_bytes(self, from_byte: int, bits: int, lsb_count: int, nth_byte: int) -> Tuple[int, bytes]:
-        """ Return bytes by reading every lsb_count bits from every nth_byte from from_byte to to_byte """
+    def _get_bytes(self, from_amplitude: int, bits: int, lsb_count: int, nth_byte: int) -> Tuple[int, bytes]:
+        """ Return bytes by reading every lsb_count bits from every nth_byte from from_amplitude """
+
+        # Calculate number of amplitudes required for entire message (account for possible remainder)
         divisor, remainder = divmod(bits, lsb_count)
-        ones = np.repeat([2**lsb_count - 1], divisor + (remainder != 0))
+        amplitudes_required = divisor + (remainder != 0)
+
+        # Get an array of size amplitudes_required, such that each number is 1 below a power of 2, e.g. 0b111
+        ones = np.full(amplitudes_required, 2**lsb_count - 1)
         if remainder > 0:
             ones[-1] = 2**remainder - 1
-        to_byte = from_byte + len(ones) * nth_byte
-        relevant_bits = self.data[from_byte:to_byte:nth_byte] & ones
-        bits_as_str = ''.join(f"{data:0{round(np.log2(pow2))}b}" for data, pow2 in zip(relevant_bits, ones))
-        return to_byte, bytes(map(lambda b: int(b, 2), textwrap.wrap(bits_as_str, 8)))
+
+        # Calculate last byte position with the given message account for nth_byte as well
+        to_amplitude = from_amplitude + len(ones) * nth_byte
+
+        # &-ing with ones will get only the relevant bits required for saving the message
+        relevant_bits = self.data[from_amplitude:to_amplitude:nth_byte] & ones
+
+        # Convert relevant_bits to a large string of bits by formatting the relevant number of bits as a string
+        bits_to_format = (np.log2(ones + 1)).astype(int)
+        bits_as_str = ''.join(f"{data:0{format_bits}b}" for data, format_bits in zip(relevant_bits, bits_to_format))
+
+        # Wrap the string every 8 bits and cast each to an integer, which is then converted to bytes
+        message_wrapped_as_bytes = bytes(map(lambda b: int(b, 2), textwrap.wrap(bits_as_str, 8)))
+        return to_amplitude, message_wrapped_as_bytes
 
     def _get_message(self):
         """ Decode message from this WAVFile """
