@@ -57,6 +57,17 @@ def handle_args(args):
     encryption_type = EncryptionType(args.encryption_type)
     hash_type = HashType(args.hash_type)
 
+    audio_path = Path(__file__).parent.parent / "audio"
+
+    audio_file_keywords = {
+        "sine": audio_path / "sine_mono_110hz.wav",
+        "square": audio_path / "square_stereo_110hz.wav",
+        "sawtooth": audio_path / "sawtooth_mono_220hz.wav",
+        "hello": audio_path / "voice_hello.wav",
+    }
+    if args.input in audio_file_keywords:
+        args.input = audio_file_keywords[args.input]
+
     wav_file = WAVFile(args.input)
 
     encryptor = EncryptionProvider.get_encryptor(encryption_type, hash_type, decryption=args.decode)
