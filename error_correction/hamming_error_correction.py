@@ -1,9 +1,13 @@
 import numpy as np
 
+from error_correction.error_correction_type import ErrorCorrectionType
 from error_correction.generic_error_correction import GenericErrorCorrection
 
 
 class HammingErrorCorrection(GenericErrorCorrection):
+
+    def __init__(self):
+        super().__init__(ErrorCorrectionType.HAMMING)
 
     @staticmethod
     def encode(data: bytes, redundant_bits: int) -> bytes:

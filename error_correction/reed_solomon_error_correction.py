@@ -1,5 +1,6 @@
 from reedsolo import RSCodec
 
+from error_correction.error_correction_type import ErrorCorrectionType
 from error_correction.generic_error_correction import GenericErrorCorrection
 
 
@@ -12,6 +13,9 @@ class ReedSolomonErrorCorrection(GenericErrorCorrection):
 
     https://pypi.org/project/reedsolo/
     """
+
+    def __init__(self):
+        super().__init__(ErrorCorrectionType.REED_SOLOMON)
 
     @staticmethod
     def _get_ecc_byte_count_per_chunk(redundant_bits):

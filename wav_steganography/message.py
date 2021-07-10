@@ -3,7 +3,6 @@ from typing import Union, Optional, Tuple
 
 from error_correction.generic_error_correction import GenericErrorCorrection
 from error_correction.none_error_correction import NoneErrorCorrection
-from error_correction.reed_solomon_error_correction import ReedSolomonErrorCorrection
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.aes_encryptor import AesEncryptor
 from security.encryptors.generic_encryptor import GenericEncryptor
@@ -68,6 +67,7 @@ class Message:
             least_significant_bits,
             every_nth_byte,
             redundant_bits,
+            error_correction.error_correction_type.value,
             encryptor.encryption_type.value,
             hash_type.value,
             salt,
@@ -91,7 +91,8 @@ class Message:
             encryptor: Optional[GenericEncryptor] = None,
             error_correction: Optional[GenericErrorCorrection] = NoneErrorCorrection(),
     ):
-        *_, redundant_bits, encryption_type, hash_type, salt, nonce, data_size = Message.decode_header(header_bytes)
+        *_, redundant_bits, error_correction_type, encryption_type, hash_type, salt, nonce, data_size = \
+            Message.decode_header(header_bytes)
 
         if encryptor is None:
             encryptor = EncryptionProvider.get_encryptor(
