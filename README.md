@@ -76,6 +76,30 @@ $ ./stegowav.py hello --encode a --fill --spectrogram --lsb 1
 This is clearly audible. To avoid such an issue, encryption can be used by adding the `--encryption-type 2` 
 flag to randomize the data (1: FERNET, 2: AES, 3: RSA, AES is recommended). 
 
+To get an impression of the audibility of encoded messages the degradation_eval.py script located 
+in the evaluation folder can be executed. 
+
+```
+$ ./evaluation/degredation_eval.py
+```
+
+This script generates a test case for each of the files located in audio/1_min_files and tasks the 
+user to choose in which file(s) he detects audible degradation. The created test reports are saved 
+in evaluation/eval_reports/.
+
+
+All generated evaluation reports can be analyzed by executing eval_report_analysis.py located in 
+the evaluation directory. 
+
+```
+$ ./evaluation/eval_report_analysis.py
+```
+
+This creates graphs for each of the used samples, which option the users 
+chose for a specific sample, and aggregates if the user was right or wrong with his decision.
+
+
+
 ## As a library
 
 Basics:
