@@ -99,6 +99,20 @@ This creates graphs for each of the used samples, which option the users
 chose for a specific sample, and aggregates if the user was right or wrong with his decision.
 
 
+It is possible to add redundant bits to an encoded secret message for error correction. Available error
+correction methods are Hamming and Reed Solomon codes (1 - Hamming, 2 - Reed Solomon).
+Here is an example for Hamming codes:
+
+```
+$ ./stegowav.py hello --encode "My secret!" -c 1
+```
+
+Be sure to call the same correction method for decoding as well.
+
+```
+$ ./stegowav.py hello --decode -c 1
+```
+
 
 ## As a library
 
