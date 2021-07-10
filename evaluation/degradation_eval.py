@@ -101,8 +101,10 @@ def init_eval_report():
 
 
 def append_eval_report(randomized_sample_list, user_choice, example_name):
-    file_1_modified = True if randomized_sample_list[0][1] != 0 else False
-    file_2_modified = True if randomized_sample_list[1][1] != 0 else False
+    file_1_lsbs = randomized_sample_list[0][1]
+    file_2_lsbs = randomized_sample_list[1][1]
+    file_1_modified = True if file_1_lsbs != 0 else False
+    file_2_modified = True if file_2_lsbs != 0 else False
 
     if (user_choice == 'First' and file_1_modified) or \
             (user_choice == 'Second' and file_2_modified) or \
@@ -112,7 +114,7 @@ def append_eval_report(randomized_sample_list, user_choice, example_name):
     else:
         eval_result = False
     print(eval_result)
-    eval_report.writerow([example_name, file_1_modified, file_2_modified, user_choice, eval_result])
+    eval_report.writerow([example_name, file_1_lsbs, file_2_lsbs, user_choice, eval_result])
 
 
 audio_file_path = pathlib.Path(__file__).absolute().parents[1].joinpath(AUDIO_FILES_DIRECTORY_NAME)
