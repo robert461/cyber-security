@@ -106,8 +106,8 @@ def append_eval_report(randomized_sample_list, user_choice, example_name):
     file_1_modified = True if file_1_lsbs != 0 else False
     file_2_modified = True if file_2_lsbs != 0 else False
 
-    if (user_choice == 'First' and file_1_modified) or \
-            (user_choice == 'Second' and file_2_modified) or \
+    if (user_choice == 'First' and file_1_modified and not file_2_modified) or \
+            (user_choice == 'Second' and file_2_modified and not file_1_modified) or \
             (user_choice == 'Both' and file_1_modified and file_2_modified) or \
             (user_choice == 'None' and not file_1_modified and not file_2_modified):
         eval_result = True
