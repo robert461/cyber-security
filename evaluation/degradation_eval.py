@@ -39,9 +39,6 @@ def select_rand_test_variant(one_min_sample):
         audio_sample_list.append((one_min_sample, 0))
         degr_directory = random.choice(os.listdir(audio_file_path))
         sample = get_audio_file_by_example_name(one_min_sample.name, degr_directory)
-        print(one_min_sample.name)
-        print(degr_directory)
-        print(sample)
         audio_sample_list.append((sample, sample.parent.name.replace('lsb_', '')))
     return audio_sample_list
 
@@ -107,13 +104,14 @@ def append_eval_report(randomized_sample_list, user_choice, example_name):
     file_1_modified = True if randomized_sample_list[0][1] != 0 else False
     file_2_modified = True if randomized_sample_list[1][1] != 0 else False
 
-    if (user_choice == '1' and file_1_modified) or \
-            (user_choice == '2' and file_2_modified) or \
-            (user_choice == 'b' and file_1_modified and file_2_modified) or \
-            (user_choice == 'n' and not file_1_modified and not file_2_modified):
+    if (user_choice == 'First' and file_1_modified) or \
+            (user_choice == 'Second' and file_2_modified) or \
+            (user_choice == 'Both' and file_1_modified and file_2_modified) or \
+            (user_choice == 'None' and not file_1_modified and not file_2_modified):
         eval_result = True
     else:
         eval_result = False
+    print(eval_result)
     eval_report.writerow([example_name, file_1_modified, file_2_modified, user_choice, eval_result])
 
 
