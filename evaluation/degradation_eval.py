@@ -104,8 +104,8 @@ def init_eval_report():
 
 
 def append_eval_report(randomized_sample_list, user_choice, example_name):
-    file_1_modified = randomized_sample_list[0][1]
-    file_2_modified = randomized_sample_list[1][1]
+    file_1_modified = True if randomized_sample_list[0][1] != 0 else False
+    file_2_modified = True if randomized_sample_list[1][1] != 0 else False
 
     if (user_choice == '1' and file_1_modified) or \
             (user_choice == '2' and file_2_modified) or \
