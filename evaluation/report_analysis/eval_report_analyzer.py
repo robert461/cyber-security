@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from typing import Dict, List
 
 from evaluation.report_analysis.eval_report_choice import EvalReportChoice
@@ -33,6 +34,9 @@ class EvalReportAnalyzer:
                     elif eval_report_choice == EvalReportChoice.SECOND:
                         eval_report_choice = EvalReportChoice.FIRST
 
+                if len(files_used[1]) == 1:
+                    files_used[1] = f'0{files_used[1]}'
+
                 name = f'{files_used[0]}-{files_used[1]}'
 
                 if name not in file_pairs:
@@ -43,7 +47,9 @@ class EvalReportAnalyzer:
                 else:
                     print(f'eval report choice "{eval_report_choice}" does not match EvalReportChoice')
 
-            entries_by_files[entries_by_file] = file_pairs
+            ordered_file_pairs = OrderedDict(sorted(file_pairs.items()))
+
+            entries_by_files[entries_by_file] = ordered_file_pairs
 
         return entries_by_files
 
@@ -59,6 +65,9 @@ class EvalReportAnalyzer:
                 files_used = [eval_report_entry[1], eval_report_entry[2]]
                 files_used.sort()
 
+                if len(files_used[1]) == 1:
+                    files_used[1] = f'0{files_used[1]}'
+
                 name = f'{files_used[0]}-{files_used[1]}'
 
                 if name not in file_pairs:
@@ -70,7 +79,9 @@ class EvalReportAnalyzer:
                 else:
                     print(f'eval report result "{eval_result}" does not match EvalReportResult')
 
-            entries_by_files[entries_by_file] = file_pairs
+            ordered_file_pairs = OrderedDict(sorted(file_pairs.items()))
+
+            entries_by_files[entries_by_file] = ordered_file_pairs
 
         return entries_by_files
 
