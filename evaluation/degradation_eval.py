@@ -32,14 +32,17 @@ def select_rand_test_variant(one_min_sample):
         for i in range(2):
             degr_directory = random.choice(os.listdir(audio_file_path))
             sample = get_audio_file_by_example_name(one_min_sample.name, degr_directory)
-            audio_sample_list.append((sample, sample.parent.name.replace('test_', '')))
+            audio_sample_list.append((sample, sample.parent.name.replace('lsb_', '')))
 
     # unmodified/modified
     else:
         audio_sample_list.append((one_min_sample, 0))
         degr_directory = random.choice(os.listdir(audio_file_path))
         sample = get_audio_file_by_example_name(one_min_sample.name, degr_directory)
-        audio_sample_list.append((sample, sample.parent.name.replace('test_', '')))
+        print(one_min_sample.name)
+        print(degr_directory)
+        print(sample)
+        audio_sample_list.append((sample, sample.parent.name.replace('lsb_', '')))
     return audio_sample_list
 
 
