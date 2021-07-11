@@ -5,6 +5,9 @@ from pathlib import Path
 
 import pytest
 
+from error_correction.hamming_error_correction import HammingErrorCorrection
+from error_correction.none_error_correction import NoneErrorCorrection
+from error_correction.reed_solomon_error_correction import ReedSolomonErrorCorrection
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.none_encryptor import NoneEncryptor
 from security.encryptors.rsa_encryptor import RsaEncryptor
@@ -70,28 +73,38 @@ def test_encoding_decoding():
             decoded_data == data, "Decoded message is not the same as the encoded one!"
 
 
-def single_test_encoding_decoding_with_error_correction(audio_file, data, encryptor):
+def single_test_encoding_decoding_with_error_correction(
+        audio_file,
+        data,
+        encryptor,
+        error_correction = ReedSolomonErrorCorrection()):
+
     file = WAVFile(audio_file)
     encoded_file_path = get_file_path(audio_file.name)
 
-    file.encode(data, redundant_bits=8, encryptor=encryptor)
+    file.encode(data, redundant_bits=8, encryptor=encryptor, error_correction=error_correction)
     file.write(encoded_file_path, overwrite=True)
 
     encoded_file = WAVFile(encoded_file_path)
-    decoded_data = encoded_file.decode()
+    decoded_data = encoded_file.decode(error_correction=error_correction)
 
     return decoded_data
 
 
 def test_multiple_encoding_decoding_with_error_correction():
-    for audio_file in audio_path.glob("*.wav"):
-        data_string = get_random_string(1000)
-        data = data_string.encode("UTF-8")
+    error_corrections = [NoneErrorCorrection(), HammingErrorCorrection(), ReedSolomonErrorCorrection()]
 
-        decoded_data = single_test_encoding_decoding_with_error_correction(audio_file, data, NoneEncryptor())
+    for error_correction in error_corrections:
 
-        assert \
-            decoded_data == data, "Decoded and corrected message is not the same as the encoded one!"
+        for audio_file in audio_path.glob("*.wav"):
+            data_string = get_random_string(1000)
+            data = data_string.encode("UTF-8")
+
+            decoded_data = single_test_encoding_decoding_with_error_correction(
+                audio_file, data, NoneEncryptor(), error_correction)
+
+            assert \
+                decoded_data == data, "Decoded and corrected message is not the same as the encoded one!"
 
 
 def test_multiple_encoding_with_error_correction_and_encryption():
