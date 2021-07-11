@@ -33,8 +33,9 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("-a", "--hash_type", type=int, default=HashType.PBKDF2,
                         help=f"hash type as number to use ({possible_hash_values})")
 
+    error_correction_type_values = ', '.join(f"{ect.value}: {ect.name}" for ect in ErrorCorrectionType)
     parser.add_argument("-c", "--error_correction_type", type = int, default = 2,
-                        help = "number of redundant bits for hamming code")
+                        help = f"error correction type as number to use ({error_correction_type_values})")
 
     parser.add_argument("-r", "--redundant_bits", type=int, default=0,
                         help="number of redundant bits for error correction")
