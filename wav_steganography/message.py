@@ -12,7 +12,6 @@ from security.enums.encryption_type import EncryptionType
 from security.enums.hash_type import HashType
 from security.hashing.salted_hash import SaltedHash
 from wav_steganography.data_chunk import DataChunk
-from error_correction.hamming_error_correction import HammingErrorCorrection
 
 
 class Message:
@@ -80,7 +79,7 @@ class Message:
 
     @staticmethod
     def decode_header(header_bytes, error_correction: GenericErrorCorrection = ReedSolomonErrorCorrection()):
-        header_bytes = error_correction.encode(header_bytes, Message.HEADER_REDUNDANT_BITS)
+        header_bytes = error_correction.decode(header_bytes, Message.HEADER_REDUNDANT_BITS)
         return struct.unpack(Message.HEADER_FORMAT, header_bytes)
 
     @staticmethod
