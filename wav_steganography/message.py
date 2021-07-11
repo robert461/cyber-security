@@ -1,7 +1,9 @@
 import struct
 from typing import Union, Optional, Tuple
 
-from error_correction.reed_solomon import ReedSolomon
+
+from error_correction.generic_error_correction import GenericErrorCorrection
+from error_correction.reed_solomon_error_correction import ReedSolomonErrorCorrection
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.aes_encryptor import AesEncryptor
 from security.encryptors.generic_encryptor import GenericEncryptor
@@ -10,12 +12,10 @@ from security.enums.encryption_type import EncryptionType
 from security.enums.hash_type import HashType
 from security.hashing.salted_hash import SaltedHash
 from wav_steganography.data_chunk import DataChunk
-from error_correction.hamming_error_correction import HammingErrorCorrection
 
 
 class Message:
     """ A message class implementing an Encoder and an Decoder
-
     This header is used to encode the meta information for the message before the actual data part.
     Currently, this consists of 8 values:
         * The least significant bits used in the data
@@ -34,8 +34,8 @@ class Message:
     HEADER_REDUNDANT_BITS = 8
 
     @staticmethod
-    def header_byte_size() -> int:
-        return len(Message.__encode_error_correction(b'a' * struct.calcsize(Message.HEADER_FORMAT),
+    def header_byte_size(error_correction) -> int:
+        return len(error_correction.encode(b'a' * struct.calcsize(Message.HEADER_FORMAT),
                                                      Message.HEADER_REDUNDANT_BITS))
 
     @staticmethod
@@ -45,13 +45,14 @@ class Message:
             every_nth_byte: int,
             redundant_bits: int,
             encryptor: GenericEncryptor = NoneEncryptor(),
+            error_correction: GenericErrorCorrection = ReedSolomonErrorCorrection()
     ) -> Tuple[DataChunk, DataChunk]:
 
         data: bytes = Message.__message_as_bytes(data)
 
         # Encrypt first, then add error correction in this order
-        data = Message.__encrypt(data, encryptor)
-        data = Message.__encode_error_correction(data, redundant_bits)
+        data = encryptor.encrypt(data)
+        data = error_correction.encode(data, redundant_bits)
 
         # Get salt/nonce values if the given encryptor has these values, otherwise use all 0 default salt/nonce
         salt = getattr(encryptor, "salt", b"0" * SaltedHash.SALT_LENGTH)
@@ -70,14 +71,15 @@ class Message:
             nonce,
             len(data),
         )
-        header_data = Message.__encode_error_correction(header_data, Message.HEADER_REDUNDANT_BITS)
+
+        header_data = error_correction.encode(header_data, Message.HEADER_REDUNDANT_BITS)
         header_chunk = DataChunk(header_data, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
         data_chunk = DataChunk(data, least_significant_bits, every_nth_byte)
         return header_chunk, data_chunk
 
     @staticmethod
-    def decode_header(header_bytes):
-        header_bytes = Message.__decode_error_correction(header_bytes, Message.HEADER_REDUNDANT_BITS)
+    def decode_header(header_bytes, error_correction: GenericErrorCorrection = ReedSolomonErrorCorrection()):
+        header_bytes = error_correction.decode(header_bytes, Message.HEADER_REDUNDANT_BITS)
         return struct.unpack(Message.HEADER_FORMAT, header_bytes)
 
     @staticmethod
@@ -85,8 +87,11 @@ class Message:
             header_bytes: bytes,
             data_bytes: bytes,
             encryptor: Optional[GenericEncryptor] = None,
+            error_correction: GenericErrorCorrection = ReedSolomonErrorCorrection(),
     ):
-        *_, redundant_bits, encryption_type, hash_type, salt, nonce, data_size = Message.decode_header(header_bytes)
+        *_, redundant_bits, encryption_type, hash_type, salt, nonce, data_size = \
+            Message.decode_header(header_bytes, error_correction)
+
         if encryptor is None:
             encryptor = EncryptionProvider.get_encryptor(
                 EncryptionType(encryption_type),
@@ -95,64 +100,9 @@ class Message:
                 salt=salt,
                 nonce=nonce,
             )
-        data = Message.__decode_error_correction(data_bytes, redundant_bits)
-        data = Message.__decrypt(data, encryptor)
 
-        return data
-
-    @staticmethod
-    def __decode_error_correction(data: bytes, redundant_bits: int):
-
-        data = Message.__decode_rs_hamming_error_correction(data, redundant_bits)
-
-        return data
-
-    @staticmethod
-    def __correct_errors_hamming(data: bytes, redundant_bits: int):
-
-        data = HammingErrorCorrection.correct_errors_hamming(data, redundant_bits)
-
-        return data
-
-    @staticmethod
-    def __encrypt(data: bytes, encryptor: Optional[GenericEncryptor]) -> bytes:
-
-        encrypted_data = encryptor.encrypt(data)
-
-        return encrypted_data
-
-    @staticmethod
-    def __decrypt(data: bytes, encryptor: Optional[GenericEncryptor]) -> bytes:
-
+        data = error_correction.decode(data_bytes, redundant_bits)
         data = encryptor.decrypt(data)
-        return data
-
-    @staticmethod
-    def __encode_error_correction(data: bytes, redundant_bits: int) -> bytes:
-
-        data_error_corrected = Message.__encode_rs_error_correction(data, redundant_bits)
-        assert len(data_error_corrected) != 0, f"data is empty after error correction: {data_error_corrected}"
-
-        return data_error_corrected
-
-    @staticmethod
-    def __decode_hamming_error_correction(data: bytes, redundant_bits: int) -> bytes:
-
-        data = HammingErrorCorrection.decode_hamming_error_correction(data, redundant_bits)
-
-        return data
-
-    @staticmethod
-    def __encode_rs_error_correction(data: bytes, redundant_bits) -> bytes:
-
-        data = ReedSolomon.encode(data, redundant_bits)
-
-        return data
-
-    @staticmethod
-    def __decode_rs_hamming_error_correction(data: bytes, redundant_bits) -> bytes:
-
-        data = ReedSolomon.decode(data, redundant_bits)
 
         return data
 

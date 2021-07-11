@@ -8,6 +8,8 @@ import math
 import numpy as np
 import pandas as pd
 
+from error_correction.generic_error_correction import GenericErrorCorrection
+from error_correction.reed_solomon_error_correction import ReedSolomonErrorCorrection
 from security.encryptors.generic_encryptor import GenericEncryptor
 from security.encryptors.none_encryptor import NoneEncryptor
 from wav_steganography.data_chunk import DataChunk
@@ -16,15 +18,11 @@ from wav_steganography.message import Message
 
 class WAVFile:
     """ Basic WAV Audio File Parser
-
     Reference: http://soundfile.sapp.org/doc/WaveFormat/
     Helpful video: https://www.youtube.com/watch?v=udbA7u1zYfc
-
     The WAV header specification was created based on the reference above.
     Each entry is formatted as follows:
-
         (name, format, byte_count, [allowed_values])
-
     * `name` will be used to store the variable in the WAVFile.header dictionary.
     * `format` is the byte format required for struct: https://docs.python.org/3/library/struct.html
     * `bytes` is the number of bytes to read from the file
@@ -171,10 +169,10 @@ class WAVFile:
             every_nth_byte: int = 1,
             redundant_bits: int = 0,
             encryptor: GenericEncryptor = NoneEncryptor(),
+            error_correction: GenericErrorCorrection = ReedSolomonErrorCorrection(),
             repeat_data: bool = False,
     ):
         """ Encode a message in the given WAVFile
-
         This is done by writing to every nth bytes some number of least significant bits.
         A short header is written first, then the message.
         """
@@ -191,6 +189,7 @@ class WAVFile:
                 every_nth_byte,
                 redundant_bits,
                 encryptor,
+                error_correction,
             )
             amplitudes_available = len(self.data) - header_chunk.amplitudes_required
             if repeat_data:
@@ -210,7 +209,7 @@ class WAVFile:
 
         self._write_chunks([header_chunk, data_chunk])
 
-        decoded_message = self.decode(encryptor=encryptor)
+        decoded_message = self.decode(encryptor=encryptor, error_correction=error_correction)
 
         assert decoded_message == data,\
             f'Cannot decode encrypted message: "{decoded_message}" != "{data}"'
@@ -239,19 +238,14 @@ class WAVFile:
     @staticmethod
     def _set_last_n_bits_in_array(data_slice: np.ndarray, binary_data_split_up, n_bits_to_set: int):
         """ Set n bits in data_bits to 0, then set them equal to message_bits
-
         Say LSBs = 2, data_bits = 0b10111001, message_bits = 0b10, then:
         ones   =   (2**n_bits_to_set - 1)   =   0b100 - 1   =   0b11
-
         Now get the LSBs bits from data_bits:
         lsb_data_bits  =  data_bits & ones  =  0b10111001 & 0b11  =  0b01
-
         Using lsb_data_bits set LSBs bits in data_bits to zero:
         data_bits_with_zeros  =  data_bits ^ lsb_data_bits  =  0b10111001 ^ 0b01  =  0b10111000
-
         Now that the LSBs bits are zero, just flip them to whatever is in message_bits:
         data_bits_with_zeros ^ message_bits  =  0b10111000 ^ 0b10 = 0b10111010
-
         The LSBs bits have been set to message_bits after this operation.
         """
         below_power_of_two = np.full_like(data_slice, 2**n_bits_to_set - 1)
@@ -286,27 +280,31 @@ class WAVFile:
         message_wrapped_as_bytes = bytes(map(lambda b: int(b, 2), textwrap.wrap(bits_as_str, 8)))
         return to_amplitude, message_wrapped_as_bytes
 
-    def _get_message(self):
+    def _get_message(self, error_correction):
         """ Decode message from this WAVFile """
-        header_bits = Message.header_byte_size() * 8
+        header_bits = Message.header_byte_size(error_correction) * 8
         to_byte, header_bytes = self._get_bytes(0, header_bits, Message.HEADER_LSB_COUNT, Message.HEADER_EVERY_NTH_BYTE)
 
-        least_significant_bits, every_nth_byte, *_, data_size = Message.decode_header(header_bytes)
+        least_significant_bits, every_nth_byte, *_, data_size = Message.decode_header(header_bytes, error_correction)
 
         message_bits = data_size * 8
         _, message_bytes = self._get_bytes(to_byte, message_bits, least_significant_bits, every_nth_byte)
 
         return header_bytes, message_bytes
 
-    def decode(self, encryptor: Optional[GenericEncryptor] = None) -> bytes:
-        """Decode message, getting all parameters from internal header
+    def decode(
+            self,
+            encryptor: Optional[GenericEncryptor] = None,
+            error_correction: GenericErrorCorrection = ReedSolomonErrorCorrection()
+    ) -> bytes:
 
+        """Decode message, getting all parameters from internal header
         Encryptor is optional, can be supplied to avoid asking for password twice when verifying.
         If Encryptor is not supplied, then it will extract the used encryptor from the header in the message.
         """
 
-        header_bytes, data_bytes = self._get_message()
+        header_bytes, data_bytes = self._get_message(error_correction)
 
-        decoded_message = Message.decode_message(header_bytes, data_bytes, encryptor)
+        decoded_message = Message.decode_message(header_bytes, data_bytes, encryptor, error_correction)
 
         return decoded_message

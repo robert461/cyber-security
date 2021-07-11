@@ -32,10 +32,16 @@ optional arguments:
   --overwrite             if the file specified as output should be overwritten
   -t, --encryption_type ENCRYPTION_TYPE
                           encryption type as number to use (0: NONE, 1: FERNET, 2: AES, 3: RSA). 
+  -a, --hash_type HASH_TYPE
+                          hash type as number to use (0: NONE, 1: PBKDF2, 2: SCRYPT)
+  -c, --error_correction_type ERROR_CORRECTION_TYPE
+                          error correction type as number to use (0: NONE, 1: HAMMING, 2: REED_SOLOMON)
   -r, --redundant_bits REDUNDANT_BITS
                           number of redundant bits for hamming code
   -l, --lsb LSB           number of least significant bits to use while encoding
+  --use_nth_byte          use only every nth byte (e.g. if 4: 1 byte will be used for data, 3 will be skipped)
   -f, --fill              fill entire file by repeating data
+  --profile               profile code (show which parts are taking long)
   -s, --spectrogram       display a spectrogram of the given file
   -p, --play              play the file (if -e provided, it will play after encoding, to hear the noise)
 ```

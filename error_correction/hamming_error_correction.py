@@ -1,14 +1,22 @@
 import numpy as np
 
+from error_correction.error_correction_type import ErrorCorrectionType
+from error_correction.generic_error_correction import GenericErrorCorrection
 
-class HammingErrorCorrection:
+
+class HammingErrorCorrection(GenericErrorCorrection):
+
+    def __init__(self):
+        super().__init__(ErrorCorrectionType.HAMMING)
 
     @staticmethod
-    def encode_hamming_error_correction(data: bytes, redundant_bits: int) -> bytes:
+    def encode(data: bytes, redundant_bits: int) -> bytes:
+
+        redundant_bits = 4
 
         hamming_code = []
 
-        data_as_bits = HammingErrorCorrection.return_as_bits(data[::-1])
+        data_as_bits = HammingErrorCorrection.__return_as_bits(data[::-1])
 
         number_of_data_and_redundant_bits = 8 + redundant_bits
 
@@ -16,52 +24,29 @@ class HammingErrorCorrection:
             next_bits = data_as_bits[-8:]
 
             hamming_code_with_placeholders = \
-                HammingErrorCorrection.add_placeholder_redundant_bits(next_bits, number_of_data_and_redundant_bits)
+                HammingErrorCorrection.__add_placeholder_redundant_bits(next_bits, number_of_data_and_redundant_bits)
 
             hamming_code_calculated = \
-                HammingErrorCorrection.calculate_values_for_redundant_bits(redundant_bits,
-                                                                           number_of_data_and_redundant_bits,
-                                                                           hamming_code_with_placeholders)
+                HammingErrorCorrection.__calculate_values_for_redundant_bits(redundant_bits,
+                                                                             number_of_data_and_redundant_bits,
+                                                                             hamming_code_with_placeholders)
 
             hamming_code.extend(hamming_code_calculated)
 
             data_as_bits = data_as_bits[:-8]
 
-        return b''.join(HammingErrorCorrection.convert_bits_to_bytes(hamming_code))
+        return b''.join(HammingErrorCorrection.__convert_bits_to_bytes(hamming_code))
 
     @staticmethod
-    def decode_hamming_error_correction(data: bytes, redundant_bits: int) -> bytes:
+    def decode(decoded_data: bytes, redundant_bits: int) -> bytes:
 
-        decoded_hamming_code = []
-
-        data_as_bits = HammingErrorCorrection.return_as_bits(data)
-
-        data_as_bits = HammingErrorCorrection.add_lost_bits(data_as_bits)
-
-        number_of_data_and_redundant_bits = 8 + redundant_bits
-
-        while len(data_as_bits) > 0:
-            next_hamming_bits = data_as_bits[:number_of_data_and_redundant_bits]
-
-            cleaned_hamming_bits = HammingErrorCorrection.remove_all_redundant_bits(next_hamming_bits, redundant_bits)
-
-            decoded_hamming_code.extend(cleaned_hamming_bits)
-
-            data_as_bits = data_as_bits[number_of_data_and_redundant_bits:]
-
-            if HammingErrorCorrection.ignore_remaining_bits(data_as_bits, number_of_data_and_redundant_bits):
-                break
-
-        return b''.join(HammingErrorCorrection.convert_bits_to_bytes(decoded_hamming_code))
-
-    @staticmethod
-    def correct_errors_hamming(decoded_data: bytes, redundant_bits: int) -> bytes:
+        redundant_bits = 4
 
         corrected_data = []
 
-        hamming_code_as_bits = HammingErrorCorrection.return_as_bits(decoded_data)
+        hamming_code_as_bits = HammingErrorCorrection.__return_as_bits(decoded_data)
 
-        hamming_code_as_bits = HammingErrorCorrection.add_lost_bits(hamming_code_as_bits)
+        hamming_code_as_bits = HammingErrorCorrection.__add_lost_bits(hamming_code_as_bits)
 
         number_of_data_and_redundant_bits = 8 + redundant_bits
 
@@ -73,7 +58,7 @@ class HammingErrorCorrection:
             while number_of_iterations < redundant_bits:
                 position_of_next_redundant_bit = 2 ** number_of_iterations
 
-                sum_of_bit_values = HammingErrorCorrection.calculate_sum_of_bit_values(
+                sum_of_bit_values = HammingErrorCorrection.__calculate_sum_of_bit_values(
                     number_of_data_and_redundant_bits,
                     position_of_next_redundant_bit,
                     next_hamming_bits)
@@ -110,18 +95,43 @@ class HammingErrorCorrection:
 
             hamming_code_as_bits = hamming_code_as_bits[number_of_data_and_redundant_bits:]
 
-            if HammingErrorCorrection.ignore_remaining_bits(hamming_code_as_bits, number_of_data_and_redundant_bits):
+            if HammingErrorCorrection.__ignore_remaining_bits(hamming_code_as_bits, number_of_data_and_redundant_bits):
                 break
 
-        corrected_data_as_byte_string = b''.join(HammingErrorCorrection.convert_bits_to_bytes(corrected_data))
+        corrected_data_as_byte_string = b''.join(HammingErrorCorrection.__convert_bits_to_bytes(corrected_data))
 
         corrected_decoded_data =\
-            HammingErrorCorrection.decode_hamming_error_correction(corrected_data_as_byte_string, redundant_bits)
+            HammingErrorCorrection.__correct_errors(corrected_data_as_byte_string, redundant_bits)
 
         return corrected_decoded_data
 
     @staticmethod
-    def add_placeholder_redundant_bits(data_as_bits: list, number_of_data_and_redundant_bits: int) -> list:
+    def __correct_errors(data: bytes, redundant_bits: int) -> bytes:
+
+        decoded_hamming_code = []
+
+        data_as_bits = HammingErrorCorrection.__return_as_bits(data)
+
+        data_as_bits = HammingErrorCorrection.__add_lost_bits(data_as_bits)
+
+        number_of_data_and_redundant_bits = 8 + redundant_bits
+
+        while len(data_as_bits) > 0:
+            next_hamming_bits = data_as_bits[:number_of_data_and_redundant_bits]
+
+            cleaned_hamming_bits = HammingErrorCorrection.__remove_all_redundant_bits(next_hamming_bits, redundant_bits)
+
+            decoded_hamming_code.extend(cleaned_hamming_bits)
+
+            data_as_bits = data_as_bits[number_of_data_and_redundant_bits:]
+
+            if HammingErrorCorrection.__ignore_remaining_bits(data_as_bits, number_of_data_and_redundant_bits):
+                break
+
+        return b''.join(HammingErrorCorrection.__convert_bits_to_bytes(decoded_hamming_code))
+
+    @staticmethod
+    def __add_placeholder_redundant_bits(data_as_bits: list, number_of_data_and_redundant_bits: int) -> list:
 
         j, k, hamming_code_with_placeholders = 0, 0, []
 
@@ -140,8 +150,8 @@ class HammingErrorCorrection:
         return hamming_code_with_placeholders
 
     @staticmethod
-    def calculate_sum_of_bit_values(number_of_data_and_redundant_bits: int, position_of_next_redundant_bit: int,
-                                    hamming_code: list) -> int:
+    def __calculate_sum_of_bit_values(number_of_data_and_redundant_bits: int, position_of_next_redundant_bit: int,
+                                      hamming_code: list) -> int:
 
         sum_of_bit_values = 0
         j = position_of_next_redundant_bit - 1
@@ -160,17 +170,17 @@ class HammingErrorCorrection:
         return sum_of_bit_values
 
     @staticmethod
-    def calculate_values_for_redundant_bits(redundant_bits: int, number_of_data_and_redundant_bits: int,
-                                            hamming_code: list) -> list:
+    def __calculate_values_for_redundant_bits(redundant_bits: int, number_of_data_and_redundant_bits: int,
+                                              hamming_code: list) -> list:
 
         number_of_iterations = 0
 
         while number_of_iterations < redundant_bits:
             position_of_next_redundant_bit = 2 ** number_of_iterations
 
-            sum_of_bit_values = HammingErrorCorrection.calculate_sum_of_bit_values(number_of_data_and_redundant_bits,
-                                                                                   position_of_next_redundant_bit,
-                                                                                   hamming_code)
+            sum_of_bit_values = HammingErrorCorrection.__calculate_sum_of_bit_values(number_of_data_and_redundant_bits,
+                                                                                     position_of_next_redundant_bit,
+                                                                                     hamming_code)
 
             # Check if all relevant bits have an even number of 1's
             # If not, update redundant bit value for even parity
@@ -182,7 +192,7 @@ class HammingErrorCorrection:
         return hamming_code
 
     @staticmethod
-    def get_bytes(bits: iter) -> bytes:
+    def __get_bytes(bits: iter) -> bytes:
 
         done = False
         while not done:
@@ -197,11 +207,11 @@ class HammingErrorCorrection:
             yield byte
 
     @staticmethod
-    def convert_bits_to_bytes(hamming_code: list) -> list:
+    def __convert_bits_to_bytes(hamming_code: list) -> list:
 
         byte_array, number_of_iterations = [], 0
 
-        for b in HammingErrorCorrection.get_bytes(iter(hamming_code)):
+        for b in HammingErrorCorrection.__get_bytes(iter(hamming_code)):
             number_of_iterations += 1
             byte_array.append(bytes([b]))
 
@@ -214,7 +224,7 @@ class HammingErrorCorrection:
         return byte_array
 
     @staticmethod
-    def remove_all_redundant_bits(list_of_hamming_bits: list, redundant_bits: int) -> list:
+    def __remove_all_redundant_bits(list_of_hamming_bits: list, redundant_bits: int) -> list:
 
         number_of_iterations = 0
 
@@ -231,7 +241,7 @@ class HammingErrorCorrection:
         return list_of_hamming_bits
 
     @staticmethod
-    def ignore_remaining_bits(decoded_hamming_code: list, number_of_data_and_redundant_bits: int) -> bool:
+    def __ignore_remaining_bits(decoded_hamming_code: list, number_of_data_and_redundant_bits: int) -> bool:
 
         if len(decoded_hamming_code) <= number_of_data_and_redundant_bits:
 
@@ -246,7 +256,7 @@ class HammingErrorCorrection:
         return False
 
     @staticmethod
-    def return_as_bits(data: bytes) -> list:
+    def __return_as_bits(data: bytes) -> list:
 
         data_as_bits = []
 
@@ -256,7 +266,7 @@ class HammingErrorCorrection:
         return data_as_bits
 
     @staticmethod
-    def add_lost_bits(data: list) -> list:
+    def __add_lost_bits(data: list) -> list:
 
         while len(data) % 12 != 0:
             data.extend([0])
