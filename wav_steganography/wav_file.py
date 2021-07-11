@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from error_correction.generic_error_correction import GenericErrorCorrection
-from error_correction.none_error_correction import NoneErrorCorrection
+from error_correction.reed_solomon_error_correction import ReedSolomonErrorCorrection
 from security.encryptors.generic_encryptor import GenericEncryptor
 from security.encryptors.none_encryptor import NoneEncryptor
 from wav_steganography.message import Message
@@ -130,7 +130,7 @@ class WAVFile:
             every_nth_byte: int = 1,
             redundant_bits: int = 0,
             encryptor: GenericEncryptor = NoneEncryptor(),
-            error_correction: GenericErrorCorrection = NoneErrorCorrection(),
+            error_correction: GenericErrorCorrection = ReedSolomonErrorCorrection(),
     ):
         """ Encode a message in the given WAVFile
 
@@ -175,7 +175,7 @@ class WAVFile:
 
             byte_index = end_byte_index
 
-        decoded_message = self.decode(encryptor=encryptor)
+        decoded_message = self.decode(encryptor=encryptor, error_correction = error_correction)
 
         assert decoded_message == data,\
             f'Cannot decode encrypted message: "{decoded_message}" != "{data}"'
@@ -235,6 +235,6 @@ class WAVFile:
 
         header_bytes, data_bytes = self._get_message()
 
-        decoded_message = Message.decode_message(header_bytes, data_bytes, encryptor)
+        decoded_message = Message.decode_message(header_bytes, data_bytes, encryptor, error_correction)
 
         return decoded_message

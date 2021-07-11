@@ -2,7 +2,7 @@ import struct
 from typing import Union, Optional, Tuple
 
 from error_correction.generic_error_correction import GenericErrorCorrection
-from error_correction.none_error_correction import NoneErrorCorrection
+from error_correction.reed_solomon_error_correction import ReedSolomonErrorCorrection
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.aes_encryptor import AesEncryptor
 from security.encryptors.generic_encryptor import GenericEncryptor
@@ -47,7 +47,7 @@ class Message:
             every_nth_byte: int,
             redundant_bits: int,
             encryptor: GenericEncryptor = NoneEncryptor(),
-            error_correction: GenericErrorCorrection = NoneErrorCorrection(),
+            error_correction: GenericErrorCorrection = ReedSolomonErrorCorrection(),
     ) -> Tuple[DataChunk, DataChunk]:
 
         data: bytes = Message.__message_as_bytes(data)
@@ -88,7 +88,7 @@ class Message:
             header_bytes: bytes,
             data_bytes: bytes,
             encryptor: Optional[GenericEncryptor] = None,
-            error_correction: Optional[GenericErrorCorrection] = NoneErrorCorrection(),
+            error_correction: Optional[GenericErrorCorrection] = ReedSolomonErrorCorrection(),
     ):
         *_, redundant_bits, error_correction_type, encryption_type, hash_type, salt, nonce, data_size = \
             Message.decode_header(header_bytes)
@@ -111,7 +111,7 @@ class Message:
     def __decode_error_correction(
             data: bytes,
             redundant_bits: int,
-            error_correction: Optional[GenericErrorCorrection] = NoneErrorCorrection()):
+            error_correction: GenericErrorCorrection = ReedSolomonErrorCorrection()):
 
         data = error_correction.decode(data, redundant_bits)
 
@@ -141,7 +141,7 @@ class Message:
     def __encode_error_correction(
             data: bytes,
             redundant_bits: int,
-            error_correction: Optional[GenericErrorCorrection] = NoneErrorCorrection()) -> bytes:
+            error_correction: Optional[GenericErrorCorrection] = ReedSolomonErrorCorrection()) -> bytes:
 
         data_error_corrected = error_correction.encode(data, redundant_bits)
         assert len(data_error_corrected) != 0, f"data is empty after error correction: {data_error_corrected}"
