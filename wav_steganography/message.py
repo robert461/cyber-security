@@ -68,7 +68,6 @@ class Message:
             every_nth_byte,
             redundant_bits,
             error_correction.error_correction_type.value,
-            encryptor.encryption_type.value,
             hash_type.value,
             salt,
             nonce,
