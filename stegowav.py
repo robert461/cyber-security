@@ -63,6 +63,10 @@ def handle_args(args):
     hash_type = HashType(args.hash_type)
     error_correction_type = ErrorCorrectionType(args.error_correction_type)
 
+    if error_correction_type == ErrorCorrectionType.HAMMING or error_correction_type == ErrorCorrectionType.NONE:
+        print('WARNING: If you choose to use no or hamming error correction when encoding '
+              'you MUST use the same error correction type during decoding!')
+
     audio_path = Path(__file__).parent.parent / "audio"
 
     audio_file_keywords = {

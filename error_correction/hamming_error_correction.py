@@ -101,9 +101,34 @@ class HammingErrorCorrection(GenericErrorCorrection):
         corrected_data_as_byte_string = b''.join(HammingErrorCorrection.__convert_bits_to_bytes(corrected_data))
 
         corrected_decoded_data =\
-            HammingErrorCorrection.decode(corrected_data_as_byte_string, redundant_bits)
+            HammingErrorCorrection.__correct_errors(corrected_data_as_byte_string, redundant_bits)
 
         return corrected_decoded_data
+
+    @staticmethod
+    def __correct_errors(data: bytes, redundant_bits: int) -> bytes:
+
+        decoded_hamming_code = []
+
+        data_as_bits = HammingErrorCorrection.__return_as_bits(data)
+
+        data_as_bits = HammingErrorCorrection.__add_lost_bits(data_as_bits)
+
+        number_of_data_and_redundant_bits = 8 + redundant_bits
+
+        while len(data_as_bits) > 0:
+            next_hamming_bits = data_as_bits[:number_of_data_and_redundant_bits]
+
+            cleaned_hamming_bits = HammingErrorCorrection.__remove_all_redundant_bits(next_hamming_bits, redundant_bits)
+
+            decoded_hamming_code.extend(cleaned_hamming_bits)
+
+            data_as_bits = data_as_bits[number_of_data_and_redundant_bits:]
+
+            if HammingErrorCorrection.__ignore_remaining_bits(data_as_bits, number_of_data_and_redundant_bits):
+                break
+
+        return b''.join(HammingErrorCorrection.__convert_bits_to_bytes(decoded_hamming_code))
 
     @staticmethod
     def __add_placeholder_redundant_bits(data_as_bits: list, number_of_data_and_redundant_bits: int) -> list:
