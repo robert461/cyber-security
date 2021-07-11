@@ -46,6 +46,9 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument("-s", "--spectrogram", action="store_true", help="display a spectrogram of the given file")
 
+    parser.add_argument("-p", "--play", action="store_true",
+                        help="play the file (if -e provided, it will play after encoding, to hear the noise)")
+
     return parser.parse_args()
 
 
@@ -53,6 +56,17 @@ def handle_args(args):
 
     encryption_type = EncryptionType(args.encryption_type)
     hash_type = HashType(args.hash_type)
+
+    audio_path = Path(__file__).parent.parent / "audio"
+
+    audio_file_keywords = {
+        "sine": audio_path / "sine_mono_110hz.wav",
+        "square": audio_path / "square_stereo_110hz.wav",
+        "sawtooth": audio_path / "sawtooth_mono_220hz.wav",
+        "hello": audio_path / "voice_hello.wav",
+    }
+    if args.input in audio_file_keywords:
+        args.input = audio_file_keywords[args.input]
 
     wav_file = WAVFile(args.input)
 
@@ -67,6 +81,7 @@ def handle_args(args):
             pre_encoding_spectrum_ax.set_xlabel("")
             pre_encoding_spectrum_ax.set_title("Spectrogram before encoding")
             fig.suptitle("Comparison between pre- and post-encoding of information in WAV file")
+
         wav_file.encode(
             args.encode.encode("UTF-8"),
             least_significant_bits=args.lsb,
@@ -102,6 +117,9 @@ def handle_args(args):
     if args.output:
         wav_file.write(Path(args.output), overwrite=args.overwrite)
         print(f"Written to {args.output}!")
+
+    if args.play:
+        wav_file.play()
 
 
 def main():
