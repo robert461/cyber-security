@@ -30,10 +30,9 @@ class Message:
     For the header, the values are defined below.
     """
     HEADER_FORMAT = f"<BHHBB{SaltedHash.SALT_LENGTH}s{AesEncryptor.NONCE_LENGTH}sI"
-    HEADER_LSB_COUNT = 8
+    HEADER_LSB_COUNT = 1
     HEADER_EVERY_NTH_BYTE = 1
-    HEADER_REDUNDANT_BITS = 40
-    assert HEADER_REDUNDANT_BITS % 8 == 0, "header must have full bytes as redundancy"
+    HEADER_REDUNDANT_BITS = 8
 
     @staticmethod
     def header_byte_size() -> int:

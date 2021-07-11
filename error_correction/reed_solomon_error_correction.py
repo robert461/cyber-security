@@ -18,6 +18,19 @@ class ReedSolomonErrorCorrection(GenericErrorCorrection):
         super().__init__(ErrorCorrectionType.REED_SOLOMON)
 
     @staticmethod
+    def _get_ecc_byte_count_per_chunk(redundant_bits):
+        reed_solomon_chunk_size = 255
+        if not (0 <= redundant_bits < reed_solomon_chunk_size * 8):
+            raise ValueError(f"ERROR: Too many redundant bits: {redundant_bits},"
+                             f" must be less than {reed_solomon_chunk_size * 8}.")
+        redundant_bytes = redundant_bits // 8
+        data_bytes = reed_solomon_chunk_size // (redundant_bytes + 1)
+        ecc_bits = max(1, reed_solomon_chunk_size - data_bytes)
+        if reed_solomon_chunk_size <= ecc_bits:
+            raise ValueError(f"ERROR: Cannot apply error correction with {redundant_bits=}.")
+        return ecc_bits
+
+    @staticmethod
     def encode(data: bytes, redundant_bits: int) -> bytes:
 
         if redundant_bits == 0:
@@ -44,13 +57,3 @@ class ReedSolomonErrorCorrection(GenericErrorCorrection):
 
         # important to return bytes, as rsc returns a bytearray, which causes errors in various encryptors
         return bytes(decoded_msg)
-
-    @staticmethod
-    def _get_ecc_byte_count_per_chunk(redundant_bits):
-        redundant_bytes = redundant_bits // 8
-        reed_solomon_chunk_size = 255
-        if not (1 <= redundant_bytes < reed_solomon_chunk_size):
-            raise ValueError(f"Too many redundant bytes: {redundant_bytes} must be less than {reed_solomon_chunk_size}!"
-                             f"I.e. redundant_bits={redundant_bits} must be less than {reed_solomon_chunk_size * 8}!")
-        data_bytes = reed_solomon_chunk_size // (redundant_bytes + 1)
-        return reed_solomon_chunk_size - data_bytes

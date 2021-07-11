@@ -128,3 +128,32 @@ def test_multiple_encoding_decoding_with_error_correction_and_oversized_data():
             data = data_string.encode("UTF-8")
 
             single_test_encoding_decoding_with_error_correction(audio_file, data, NoneEncryptor())
+
+
+def test_various_lsbs():
+    wav_file = WAVFile(audio_path / "voice_hello.wav")
+    for data_bytes in range(1, 5):
+        for lsb in range(1, 17):
+            wav_file.encode(b"a" * data_bytes, least_significant_bits=lsb)
+
+
+def test_random_configurations():
+    for _ in range(10):
+        data = get_random_string(random.randint(1, 100)).encode("UTF-8")
+        lsb = random.randint(1, 16)
+        every_nth_byte = random.randint(1, 10)
+        redundant_bits = random.randint(0, 50)
+        wav_file = WAVFile(audio_path / "voice_hello.wav")
+        wav_file.encode(data, least_significant_bits=lsb, every_nth_byte=every_nth_byte, redundant_bits=redundant_bits)
+
+
+def test_repeating_data():
+    """ Test various configurations with repeating data to ensure that it doesn't overflow"""
+    for _ in range(10):
+        data = get_random_string(random.randint(1, 100)).encode("UTF-8")
+        lsb = random.randint(1, 16)
+        every_nth_byte = random.randint(1, 10)
+        redundant_bits = random.randint(0, 50)
+        wav_file = WAVFile(audio_path / "voice_hello.wav")
+        wav_file.encode(data, least_significant_bits=lsb, every_nth_byte=every_nth_byte, redundant_bits=redundant_bits,
+                        repeat_data=True)

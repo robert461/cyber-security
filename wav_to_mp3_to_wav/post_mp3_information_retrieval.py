@@ -8,7 +8,7 @@ from wav_to_mp3_to_wav.analyze_flipped_bits import find_matching_audio_file, con
 def compare_headers(file_path):
     with TemporaryDirectory() as tmp_dir:
         wav_file = WAVFile(file_path)
-        wav_file.encode(b"ABCDEF", redundant_bits=300)
+        wav_file.encode(b"ABCDEF", redundant_bits=300, repeat_data=True)
         encoded_file_path = Path(tmp_dir) / "encoded_file.wav"
         wav_file.write(encoded_file_path)
         pre_conversion, post_conversion = convert_to_file_format_and_back(encoded_file_path, bitrate="312k")
@@ -20,7 +20,7 @@ def compare_headers(file_path):
 
 
 def main():
-    compare_headers(find_matching_audio_file("nightroom"))
+    compare_headers(find_matching_audio_file("voice"))
 
 
 if __name__ == "__main__":

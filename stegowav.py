@@ -6,6 +6,8 @@ import cProfile
 
 from error_correction.error_correction_provider import ErrorCorrectionProvider
 from error_correction.error_correction_type import ErrorCorrectionType
+from matplotlib import pyplot as plt
+
 from security.encryption_provider import EncryptionProvider
 from security.enums.encryption_type import EncryptionType
 from security.enums.hash_type import HashType
@@ -43,7 +45,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--use_nth_byte", type=int, default=1,
                         help="use only every nth byte (e.g. if 4: 1 byte will be used for data, 3 will be skipped)")
 
+    parser.add_argument("-f", "--fill", action="store_true", help="fill entire file by repeating data")
+
     parser.add_argument("--profile", action="store_true", help="profile code (show which parts are taking long)")
+
+    parser.add_argument("-s", "--spectrogram", action="store_true", help="display a spectrogram of the given file")
+
+    parser.add_argument("-p", "--play", action="store_true",
+                        help="play the file (if -e provided, it will play after encoding, to hear the noise)")
 
     return parser.parse_args()
 
@@ -54,19 +63,40 @@ def handle_args(args):
     hash_type = HashType(args.hash_type)
     error_correction_type = ErrorCorrectionType(args.error_correction_type)
 
+    audio_path = Path(__file__).parent.parent / "audio"
+
+    audio_file_keywords = {
+        "sine": audio_path / "sine_mono_110hz.wav",
+        "square": audio_path / "square_stereo_110hz.wav",
+        "sawtooth": audio_path / "sawtooth_mono_220hz.wav",
+        "hello": audio_path / "voice_hello.wav",
+    }
+    if args.input in audio_file_keywords:
+        args.input = audio_file_keywords[args.input]
+
     wav_file = WAVFile(args.input)
 
     encryptor = EncryptionProvider.get_encryptor(encryption_type, hash_type, decryption=args.decode)
     error_correction = ErrorCorrectionProvider.get_error_correction(error_correction_type=error_correction_type)
 
+    post_encoding_spectrum_ax, diff_ax = None, None
     if args.encode:
+        if args.spectrogram:
+            # Add diff_ax if difference is wanted
+            fig, (pre_encoding_spectrum_ax, post_encoding_spectrum_ax) = plt.subplots(2, 1)
+            pre_encoding_spectrum = wav_file.spectrogram(show=False, ax=pre_encoding_spectrum_ax)
+            pre_encoding_spectrum_ax.set_xlabel("")
+            pre_encoding_spectrum_ax.set_title("Spectrogram before encoding")
+            fig.suptitle("Comparison between pre- and post-encoding of information in WAV file")
+
         wav_file.encode(
             args.encode.encode("UTF-8"),
             least_significant_bits=args.lsb,
             every_nth_byte=args.use_nth_byte,
             redundant_bits=args.redundant_bits,
             encryptor=encryptor,
-            error_correction=error_correction
+            error_correction=error_correction,
+            repeat_data=args.fill,
         )
 
     if args.decode:
@@ -77,9 +107,27 @@ def handle_args(args):
         print(f"Decoded message (len={len(decoded_string)}):")
         print(decoded_string)
 
+    if args.spectrogram:
+        if post_encoding_spectrum_ax is None:
+            fig, axes = plt.subplots()
+            post_encoding_spectrum_ax = axes
+        else:
+            post_encoding_spectrum_ax.set_title("Spectrogram after encoding")
+        post_encoding_spectrum = wav_file.spectrogram(show=False, ax=post_encoding_spectrum_ax)
+        if diff_ax is not None:
+            diff_ax.pcolormesh(post_encoding_spectrum - pre_encoding_spectrum, vmax=.1)
+            diff_ax.set_yticks([])
+            diff_ax.set_xticks([])
+            diff_ax.set_title("Difference")
+
+        plt.show()
+
     if args.output:
         wav_file.write(Path(args.output), overwrite=args.overwrite)
         print(f"Written to {args.output}!")
+
+    if args.play:
+        wav_file.play()
 
 
 def main():
