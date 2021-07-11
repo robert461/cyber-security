@@ -4,6 +4,8 @@ import argparse
 from pathlib import Path
 import cProfile
 
+from error_correction.error_correction_provider import ErrorCorrectionProvider
+from error_correction.error_correction_type import ErrorCorrectionType
 from matplotlib import pyplot as plt
 
 from security.encryption_provider import EncryptionProvider
@@ -31,8 +33,12 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("-a", "--hash_type", type=int, default=HashType.PBKDF2,
                         help=f"hash type as number to use ({possible_hash_values})")
 
+    error_correction_type_values = ', '.join(f"{ect.value}: {ect.name}" for ect in ErrorCorrectionType)
+    parser.add_argument("-c", "--error_correction_type", type = int, default = 2,
+                        help = f"error correction type as number to use ({error_correction_type_values})")
+
     parser.add_argument("-r", "--redundant_bits", type=int, default=0,
-                        help="number of redundant bits for hamming code")
+                        help="number of redundant bits for error correction")
 
     parser.add_argument("-l", "--lsb", type=int, default=2,
                         help="number of least significant bits to use while encoding")
@@ -56,6 +62,11 @@ def handle_args(args):
 
     encryption_type = EncryptionType(args.encryption_type)
     hash_type = HashType(args.hash_type)
+    error_correction_type = ErrorCorrectionType(args.error_correction_type)
+
+    if error_correction_type == ErrorCorrectionType.HAMMING or error_correction_type == ErrorCorrectionType.NONE:
+        print('WARNING: If you choose to use no or hamming error correction when encoding '
+              'you MUST use the same error correction type during decoding!')
 
     audio_path = Path(__file__).parent.parent / "audio"
 
@@ -71,6 +82,7 @@ def handle_args(args):
     wav_file = WAVFile(args.input)
 
     encryptor = EncryptionProvider.get_encryptor(encryption_type, hash_type, decryption=args.decode)
+    error_correction = ErrorCorrectionProvider.get_error_correction(error_correction_type=error_correction_type)
 
     post_encoding_spectrum_ax, diff_ax = None, None
     if args.encode:
@@ -88,6 +100,7 @@ def handle_args(args):
             every_nth_byte=args.use_nth_byte,
             redundant_bits=args.redundant_bits,
             encryptor=encryptor,
+            error_correction=error_correction,
             repeat_data=args.fill,
         )
 
