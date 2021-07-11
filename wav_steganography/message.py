@@ -107,13 +107,6 @@ class Message:
         return data
 
     @staticmethod
-    def __correct_errors_hamming(data: bytes, redundant_bits: int):
-
-        data = HammingErrorCorrection.correct_errors_hamming(data, redundant_bits)
-
-        return data
-
-    @staticmethod
     def __message_as_bytes(message: Union[bytes, str]):
         if isinstance(message, str):
             message = message.encode("UTF-8")
