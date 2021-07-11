@@ -101,7 +101,7 @@ class Message:
                 nonce=nonce,
             )
 
-        data = error_correction.encode(data_bytes, redundant_bits)
+        data = error_correction.decode(data_bytes, redundant_bits)
         data = encryptor.decrypt(data)
 
         return data

@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-from error_correction.reed_solomon_error_correction import ReedSolomonErrorCorrection
 from security.encryption_provider import EncryptionProvider
 from security.encryptors.none_encryptor import NoneEncryptor
 from security.encryptors.rsa_encryptor import RsaEncryptor
@@ -75,7 +74,7 @@ def single_test_encoding_decoding_with_error_correction(audio_file, data, encryp
     file = WAVFile(audio_file)
     encoded_file_path = get_file_path(audio_file.name)
 
-    file.encode(data, redundant_bits=8, encryptor=encryptor, error_correction = ReedSolomonErrorCorrection())
+    file.encode(data, redundant_bits=8, encryptor=encryptor)
     file.write(encoded_file_path, overwrite=True)
 
     encoded_file = WAVFile(encoded_file_path)
