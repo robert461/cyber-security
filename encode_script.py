@@ -2,43 +2,65 @@ import os
 import argparse
 
 from wav_steganography.wav_file import WAVFile
-
-
-input_path = ""
-output_path = ""
-encode_path = ""
+from pathlib import Path
 
 audiofiles = []
 filenames = []
-count = 0
-
 
 parser = argparse.ArgumentParser(description="start the encode script")
 parser.add_argument("encode", type=str, help="name of the encode txt-file")
-parser.add_argument("output", type=str, help="name of the output directory")
+parser.add_argument("--single", action="store_true",
+                    help="encode a txt file into all samples, with a specific number of LSBs converted")
+parser.add_argument("-l", "--lsb", type=int, help="sets the number of LSBs used for single file encoding")
+parser.add_argument("-o", "--output", type=str, help="name of the output directory")
+parser.add_argument("--all", action="store_true",
+                    help="encode a txt file into all samples, iterate over all possible LSBs")
+
 args = parser.parse_args()
 
-encode_filename = str(args.encode)
-output_directory = str(args.output)
+encode_directory = Path("audio") / "txt_files" / args.encode
 
-directory = "audio\\1min_files"
-for entry in os.scandir(directory):
-    if entry.path.endswith(".wav") and entry.is_file():
-        audiofiles.append(entry.path)
-        filenames.append(os.path.basename(entry.path))
+for entry in Path("audio/1min_files").glob("*.wav"):
+    audiofiles.append(entry)
+    filenames.append(entry.name)
 
-for element in audiofiles:
-    input_path = element
-    print("I: " + input_path)
-    if not os.path.exists("audio\\evaluation_samples\\" + output_directory):
-        os.makedirs("audio\\evaluation_samples\\" + output_directory)
-    output_path = "audio\\evaluation_samples\\" + output_directory + "\\modified_" + filenames[count]
-    print("O: " + output_path)
-    encode_path = "audio\\txt_files\\" + encode_filename
-    print("E: " + encode_path + "\n")
 
-    wav_file = WAVFile(input_path)
-    wav_file.encode(open(encode_path, 'r').read().encode("UTF-8"), )
-    wav_file.write(output_path, True)
+# encode a file into all audio files with a specific number of LSBs converted
+def encode_single_lsb(out, lsb):
+    count = 0
+    for element in audiofiles:
+        encode_file(element, str(out) + "/modified_" + filenames[count], lsb)
+        count = count + 1
 
-    count = count + 1
+
+# encode a file into all audio files, iterate over all LSBs possible
+def encode_all_lsb():
+    number_of_lsb = 1
+    while number_of_lsb <= 15:
+        print(f"\n----- Number of LSBs used for encoding: {number_of_lsb} -----\n")
+
+        lsb_directory = "lsb_" + str(number_of_lsb)
+        output = Path("audio") / "evaluation_samples" / lsb_directory
+        if not Path.exists(output):
+            output.mkdir()
+
+        encode_single_lsb(output, number_of_lsb)
+        number_of_lsb = number_of_lsb + 1
+
+
+def encode_file(input_dir, output, lsb):
+    print(f"I: {input_dir}")
+    print(f"O: {output}")
+    print(f"E: {encode_directory}\n")
+    wav_file = WAVFile(input_dir)
+    wav_file.encode(open(encode_directory, 'r').read().encode("UTF-8"), least_significant_bits=lsb)
+    wav_file.write(output, True)
+
+
+if args.single:
+    output_directory = Path("audio") / "evaluation_samples" / args.output
+    if not Path.exists(output_directory):
+        output_directory.mkdir()
+    encode_single_lsb(output_directory, args.lsb)
+if args.all:
+    encode_all_lsb()
