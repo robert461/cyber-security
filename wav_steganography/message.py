@@ -101,6 +101,7 @@ class Message:
                 salt=salt,
                 nonce=nonce,
             )
+
         data = error_correction.encode(data_bytes, redundant_bits)
         data = encryptor.decrypt(data)
 

@@ -12,6 +12,8 @@ class HammingErrorCorrection(GenericErrorCorrection):
     @staticmethod
     def encode(data: bytes, redundant_bits: int) -> bytes:
 
+        redundant_bits = 4
+
         hamming_code = []
 
         data_as_bits = HammingErrorCorrection.__return_as_bits(data[::-1])
@@ -37,6 +39,8 @@ class HammingErrorCorrection(GenericErrorCorrection):
 
     @staticmethod
     def decode(decoded_data: bytes, redundant_bits: int) -> bytes:
+
+        redundant_bits = 4
 
         corrected_data = []
 
