@@ -87,7 +87,7 @@ class Message:
     def decode_message(
             header_bytes: bytes,
             data_bytes: bytes,
-            encryptor: Optional[GenericEncryptor] = NoneEncryptor(),
+            encryptor: Optional[GenericEncryptor] = None,
             error_correction: GenericErrorCorrection = ReedSolomonErrorCorrection(),
     ):
         *_, redundant_bits, encryption_type, hash_type, salt, nonce, data_size = \
